@@ -1,6 +1,10 @@
 package auth
 
-import "database/sql"
+import (
+	"database/sql"
+
+	"github.com/rahulsoibam/koubru-prod-api/authutils/googlejwt"
+)
 
 func dbGetUserIDUsingUsername(db *sql.DB, username string) (int64, error) {
 	var userID int64
@@ -62,6 +66,26 @@ func dbGetUserIDUsingGoogle(db *sql.DB, googleID string) (int64, error) {
 	var err error
 	var userID int64
 	err = db.QueryRow("SELECT user_id FROM KUser WHERE google=$1", googleID).Scan(&userID)
+	if err != nil {
+		return 0, err
+	}
+	return userID, nil
+}
+
+func dbRegisterUserUsingFacebook(db *sql.DB, fu FacebookUser, username string) (int64, error) {
+	var err error
+	var userID int64
+	err = db.QueryRow("INSERT INTO KUser (username, full_name, facebook) VALUES ($1, $2, $3) RETURNING user_id", username, fu.Name, fu.ID).Scan(&userID)
+	if err != nil {
+		return 0, err
+	}
+	return userID, nil
+}
+
+func dbRegisterUserUsingGoogle(db *sql.DB, cs *googlejwt.ClaimSet, username string) (int64, error) {
+	var err error
+	var userID int64
+	err = db.QueryRow("INSERT INTO KUser (username, full_name, google) VALUES ($1, $2, $3) RETURNING user_id", username, cs.Name, cs.Sub).Scan(&userID)
 	if err != nil {
 		return 0, err
 	}

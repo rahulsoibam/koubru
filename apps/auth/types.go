@@ -2,7 +2,11 @@ package auth
 
 import (
 	"errors"
+	"strconv"
 	"strings"
+
+	"github.com/go-redis/redis"
+	"golang.org/x/oauth2/jws"
 
 	"github.com/rahulsoibam/koubru-prod-api/utils"
 )
@@ -47,7 +51,6 @@ func (c *Credentials) ValidateAndLoginType() (string, error) {
 type NewUser struct {
 	Username string `json:"username"`
 	Email    string `json:"email"`
-	Picture  string `json:"picture"`
 	Password string `json:"password,omitempty"`
 	FullName string `json:"full_name"`
 }
@@ -74,4 +77,79 @@ func (nu *NewUser) Validate() error {
 	}
 
 	return nil
+}
+
+// FacebookUser stores the Facebook User Data response
+type FacebookUser struct {
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	Picture struct {
+		Data struct {
+			Height       int    `json:"height"`
+			IsSilhouette bool   `json:"is_silhouette"`
+			URL          string `json:"url"`
+			Width        int    `json:"width"`
+		} `json:"data"`
+	} `json:"picture"`
+	Email string `json:"email"`
+}
+
+// GenerateUsername generates a username from the facebook name
+func (fu *FacebookUser) GenerateUsername(authCache *redis.Client) (string, error) {
+	// Trim non-username characters from Name
+	username := utils.UsernameRegex.ReplaceAllString(fu.Name, "")
+	if utils.UsernameRegex.MatchString(username) {
+		err := utils.ValidateUsername(username)
+		if err != nil {
+			return "", err
+		}
+	}
+	exists := authCache.SIsMember("usernames", username)
+	if !exists.Val() {
+		return username, nil
+	}
+	for i := 2; i < 100; i++ {
+		exists = authCache.SIsMember("usernames", username+strconv.Itoa(i))
+		if !exists.Val() {
+			return username + strconv.Itoa(i), nil
+		}
+	}
+
+	return "", errors.New("Cannot generate username from facebook name")
+}
+
+// GoogleUser stores the Google User Data response
+type GoogleUser struct {
+	jws.ClaimSet
+	Email         string `json:"email"`
+	EmailVerified bool   `json:"email_verified"`
+	Name          string `json:"name"`
+	Picture       string `json:"picture"`
+	GivenName     string `json:"given_name"`
+	FamilyName    string `json:"family_name"`
+	Locale        string `json:"locale"`
+}
+
+// GenerateUsername generates a username from the Google name
+func (gu *GoogleUser) GenerateUsername(authCache *redis.Client) (string, error) {
+	// Trim non-username characters from Name
+	username := utils.UsernameRegex.ReplaceAllString(gu.Name, "")
+	if utils.UsernameRegex.MatchString(username) {
+		err := utils.ValidateEmail(username)
+		if err != nil {
+			return "", err
+		}
+	}
+	exists := authCache.SIsMember("usernames", username)
+	if !exists.Val() {
+		return username, nil
+	}
+	for i := 2; i < 100; i++ {
+		exists = authCache.SIsMember("usernames", username+strconv.Itoa(i))
+		if !exists.Val() {
+			return username + strconv.Itoa(i), nil
+		}
+	}
+
+	return "", errors.New("Cannot generate username from facebook name")
 }

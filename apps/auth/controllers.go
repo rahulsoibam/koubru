@@ -216,20 +216,6 @@ func (a *App) Facebook(w http.ResponseWriter, r *http.Request) {
 	defer response.Body.Close()
 	fmt.Println("done requesting facebook")
 
-	type FacebookUser struct {
-		ID      string `json:"id"`
-		Name    string `json:"name"`
-		Picture struct {
-			Data struct {
-				Height       int    `json:"height"`
-				IsSilhouette bool   `json:"is_silhouette"`
-				URL          string `json:"url"`
-				Width        int    `json:"width"`
-			} `json:"data"`
-		} `json:"picture"`
-		Email string `json:"email"`
-	}
-
 	var fu FacebookUser
 	fmt.Println("decoding json")
 	err = json.NewDecoder(response.Body).Decode(&fu)
@@ -243,13 +229,20 @@ func (a *App) Facebook(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch err {
 		case sql.ErrNoRows:
-			var nu NewUser
-			nu.Username = ""
-			nu.Email = fu.Email
-			nu.Picture = fu.Picture.Data.URL
-			nu.FullName = fu.Name
-			utils.RespondWithJSON(w, http.StatusUnauthorized, &nu)
-			return
+			username, err := fu.GenerateUsername(a.AuthCache)
+			if err != nil {
+				utils.RespondWithError(w, http.StatusBadRequest, err.Error())
+				return
+			}
+			userID, err = dbRegisterUserUsingFacebook(a.DB, fu, username)
+			if err != nil {
+				if e, ok := err.(*pq.Error); ok {
+					utils.RespondWithError(w, http.StatusInternalServerError, e.Detail)
+					return
+				}
+				utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
 		default:
 			utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
@@ -283,20 +276,30 @@ func (a *App) Google(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithJSON(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	claimSet, err := googlejwt.Decode(googleIDToken)
+	cs, err := googlejwt.Decode(googleIDToken)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
 
-	userID, err := dbGetUserIDUsingGoogle(a.DB, claimSet.Sub)
+	userID, err := dbGetUserIDUsingGoogle(a.DB, cs.Sub)
 	if err != nil {
 		switch err {
 		case sql.ErrNoRows:
-			var nu NewUser
-
-			// a.AuthCache.Set()
-			nu.FullName = claimSet.Name
-			nu.Email = claimSet.Email
-			nu.Picture = claimSet.Picture
-			utils.RespondWithJSON(w, http.StatusUnauthorized, &nu)
-			return
+			username, err := cs.GenerateUsername(a.AuthCache)
+			if err != nil {
+				utils.RespondWithError(w, http.StatusBadRequest, err.Error())
+				return
+			}
+			userID, err = dbRegisterUserUsingGoogle(a.DB, cs, username)
+			if err != nil {
+				if e, ok := err.(*pq.Error); ok {
+					utils.RespondWithError(w, http.StatusInternalServerError, e.Detail)
+					return
+				}
+				utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
 		default:
 			utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
