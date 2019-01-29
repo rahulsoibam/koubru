@@ -126,8 +126,8 @@ func (a *App) Register(w http.ResponseWriter, r *http.Request) {
 
 	userID, err := dbRegisterUser(a.DB, nu)
 	if err != nil {
-		if err, ok := err.(*pq.Error); ok {
-			utils.RespondWithError(w, http.StatusBadRequest, err.Detail)
+		if e, ok := err.(*pq.Error); ok {
+			utils.RespondWithError(w, http.StatusBadRequest, e.Detail)
 			return
 		}
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -205,9 +205,7 @@ func (a *App) Facebook(w http.ResponseWriter, r *http.Request) {
 		switch err {
 		case sql.ErrNoRows:
 			var nu NewUser
-			nu.FullName = fu.Name
-			nu.Email = fu.Email
-			nu.Picture = fu.Picture.Data.URL
+
 			utils.RespondWithJSON(w, http.StatusUnauthorized, &nu)
 			return
 		default:
@@ -228,9 +226,10 @@ func (a *App) Facebook(w http.ResponseWriter, r *http.Request) {
 func (a *App) Google(w http.ResponseWriter, r *http.Request) {
 	googleIDToken := r.FormValue("google_id_token")
 	v := googlejwt.GoogleIDTokenVerifier{}
-	aud := "451796869752-sbdnk7c82edf91g3hernllknfmpngifl.apps.googleusercontent.com"
+	iosaud := "451796869752-sbdnk7c82edf91g3hernllknfmpngifl.apps.googleusercontent.com"
+	andaud := "451796869752-muqbuv2jn8o9hce5c64gl52ibm2gbkmi.apps.googleusercontent.com"
 	err := v.VerifyIDToken(googleIDToken, []string{
-		aud,
+		iosaud, andaud,
 	})
 	if err != nil {
 		utils.RespondWithJSON(w, http.StatusBadRequest, err.Error())
@@ -243,6 +242,8 @@ func (a *App) Google(w http.ResponseWriter, r *http.Request) {
 		switch err {
 		case sql.ErrNoRows:
 			var nu NewUser
+
+			// a.AuthCache.Set()
 			nu.FullName = claimSet.Name
 			nu.Email = claimSet.Email
 			nu.Picture = claimSet.Picture
@@ -259,6 +260,16 @@ func (a *App) Google(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	utils.RespondWithJSON(w, http.StatusOK, &token)
+}
+
+// LinkGoogle is used to link a google account
+func (a *App) LinkGoogle(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("link google"))
+}
+
+// LinkFacebook is used to link a facebook account
+func (a *App) LinkFacebook(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("link facebook"))
 }
 
 // Logout user

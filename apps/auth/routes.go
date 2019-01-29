@@ -16,6 +16,8 @@ func (a *App) Routes() chi.Router {
 	r.Get("/verify-email", a.VerifyEmail)
 	r.Group(func(r chi.Router) {
 		r.Use(a.Middleware.UserCtx)
+		// TODO r.Post("/link/google", a.LinkGoogle)
+		// TODO r.Post("/link/facebook", a.LinkFacebook)
 		r.Post("/logout", a.Logout)
 	})
 	// r.Get("/sessions", a.Sessions)

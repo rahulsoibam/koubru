@@ -12,3 +12,13 @@ func GenerateRandomBytes(n uint32) ([]byte, error) {
 
 	return b, nil
 }
+
+// // GenerateRandomString generates a random string
+// func GenerateRandomBase64String(len uint32) (string, error) {
+// 	randomBytes, err := GenerateRandomBytes(len)
+// 	if err != nil {
+// 		return "", err
+// 	}
+
+// 	``
+// }
