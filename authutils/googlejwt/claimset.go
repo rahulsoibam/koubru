@@ -3,6 +3,7 @@ package googlejwt
 import (
 	"errors"
 	"strconv"
+	"strings"
 
 	"github.com/go-redis/redis"
 	"github.com/rahulsoibam/koubru-prod-api/utils"
@@ -26,21 +27,22 @@ func (gu *ClaimSet) GenerateUsername(authCache *redis.Client) (string, error) {
 	// Trim non-username characters from Name
 	username := utils.UsernameInverseRegex.ReplaceAllString(gu.Name, "")
 	if utils.UsernameRegex.MatchString(username) {
+		username = strings.ToLower(username)
 		err := utils.ValidateEmail(username)
 		if err != nil {
 			return "", err
 		}
-	}
-	exists := authCache.SIsMember("usernames", username)
-	if !exists.Val() {
-		return username, nil
-	}
-	for i := 2; i < 100; i++ {
-		exists = authCache.SIsMember("usernames", username+strconv.Itoa(i))
+
+		exists := authCache.SIsMember("usernames", username)
 		if !exists.Val() {
-			return username + strconv.Itoa(i), nil
+			return username, nil
+		}
+		for i := 2; i < 100; i++ {
+			exists = authCache.SIsMember("usernames", username+strconv.Itoa(i))
+			if !exists.Val() {
+				return username + strconv.Itoa(i), nil
+			}
 		}
 	}
-
 	return "", errors.New("Cannot generate username from google name")
 }
