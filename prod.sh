@@ -16,7 +16,7 @@ export AUTH_DB_NAME='auth'
 export AUTH_DB_PORT='5432'
 
 # Credentials for redis instance for authentication
-export AUTH_REDIS_ADDRESS='koubruauthredis-0001-001.qwpnzg.0001.aps1.cache.amazonaws.com'
+export AUTH_REDIS_ADDRESS='koubruauthredis-0001-001.qwpnzg.0001.aps1.cache.amazonaws.com:6379'
 export AUTH_REDIS_PASSWORD=''
 
 # AWS related env variables
