@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/lib/pq"
 	"github.com/rahulsoibam/koubru-prod-api/middleware"
@@ -25,6 +26,29 @@ var (
 	errNoPasswordSet    = errors.New("A password is not set for this account. Login using social account or create password")
 	errPasswordNotMatch = errors.New("Password does not match")
 )
+
+func (a *App) authenticate(userID int64, bearerToken string, userAgent string) (*Token, error) {
+	var err error
+	expiry := 60 * 60 * 24 * 30 * time.Second
+	// Store token as session in Redis
+	err = a.AuthCache.Set(bearerToken, userID, expiry).Err()
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = a.AuthDB.Exec("INSERT INTO Session (user_id, token, user_agent) VALUES ($1, $2, $3)", userID, bearerToken, userAgent)
+	if err != nil {
+		return nil, err
+	}
+
+	token := Token{
+		TokenType:   "Bearer",
+		AccessToken: bearerToken,
+		Expires:     expiry.Nanoseconds() / 1e9,
+	}
+
+	return &token, nil
+}
 
 // Login using username/phone/email and password
 func (a *App) Login(w http.ResponseWriter, r *http.Request) {
@@ -89,11 +113,20 @@ func (a *App) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := authutils.Authenticate(a.AuthCache, a.AuthDB, userID, r.UserAgent())
+	// Generate bearer token
+	bearerToken, err := authutils.GenerateSecureToken(256)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+
+	// Authenticate and return access token
+	token, err := a.authenticate(userID, bearerToken, r.UserAgent())
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
 	utils.RespondWithJSON(w, http.StatusOK, &token)
 }
 
@@ -150,8 +183,14 @@ func (a *App) Register(w http.ResponseWriter, r *http.Request) {
 	a.AuthCache.SAdd("usernames", nu.Username)
 	a.AuthCache.SAdd("emails", nu.Email)
 
+	bearerToken, err := authutils.GenerateSecureToken(256)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
 	// Store authentication details in data layers and return access token
-	token, err := authutils.Authenticate(a.AuthCache, a.AuthDB, userID, r.UserAgent())
+	token, err := a.authenticate(userID, bearerToken, r.UserAgent())
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -217,7 +256,13 @@ func (a *App) Facebook(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	token, err := authutils.Authenticate(a.AuthCache, a.AuthDB, userID, r.UserAgent())
+	bearerToken, err := authutils.GenerateSecureToken(256)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	token, err := a.authenticate(userID, bearerToken, r.UserAgent())
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -257,7 +302,12 @@ func (a *App) Google(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	token, err := authutils.Authenticate(a.AuthCache, a.AuthDB, userID, r.UserAgent())
+	bearerToken, err := authutils.GenerateSecureToken(256)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	token, err := a.authenticate(userID, bearerToken, r.UserAgent())
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return

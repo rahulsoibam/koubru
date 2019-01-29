@@ -7,6 +7,13 @@ import (
 	"github.com/rahulsoibam/koubru-prod-api/utils"
 )
 
+// Token struct for storing token
+type Token struct {
+	TokenType   string `json:"token_type"`
+	AccessToken string `json:"access_token"`
+	Expires     int64  `json:"expires"`
+}
+
 // Credentials struct for storing login input
 type Credentials struct {
 	User     string `json:"user"`
@@ -41,7 +48,7 @@ type NewUser struct {
 	Username string `json:"username"`
 	Email    string `json:"email"`
 	Picture  string `json:"picture"`
-	Password string `json:"password"`
+	Password string `json:"password,omitempty"`
 	FullName string `json:"full_name"`
 }
 
