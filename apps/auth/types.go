@@ -97,7 +97,7 @@ type FacebookUser struct {
 // GenerateUsername generates a username from the facebook name
 func (fu *FacebookUser) GenerateUsername(authCache *redis.Client) (string, error) {
 	// Trim non-username characters from Name
-	username := utils.UsernameRegex.ReplaceAllString(fu.Name, "")
+	username := utils.UsernameInverseRegex.ReplaceAllString(fu.Name, "")
 	if utils.UsernameRegex.MatchString(username) {
 		err := utils.ValidateUsername(username)
 		if err != nil {
@@ -133,7 +133,7 @@ type GoogleUser struct {
 // GenerateUsername generates a username from the Google name
 func (gu *GoogleUser) GenerateUsername(authCache *redis.Client) (string, error) {
 	// Trim non-username characters from Name
-	username := utils.UsernameRegex.ReplaceAllString(gu.Name, "")
+	username := utils.UsernameInverseRegex.ReplaceAllString(gu.Name, "")
 	if utils.UsernameRegex.MatchString(username) {
 		err := utils.ValidateEmail(username)
 		if err != nil {

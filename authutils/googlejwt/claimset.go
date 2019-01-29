@@ -24,7 +24,7 @@ type ClaimSet struct {
 // GenerateUsername generates a username from the Google name
 func (gu *ClaimSet) GenerateUsername(authCache *redis.Client) (string, error) {
 	// Trim non-username characters from Name
-	username := utils.UsernameRegex.ReplaceAllString(gu.Name, "")
+	username := utils.UsernameInverseRegex.ReplaceAllString(gu.Name, "")
 	if utils.UsernameRegex.MatchString(username) {
 		err := utils.ValidateEmail(username)
 		if err != nil {

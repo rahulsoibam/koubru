@@ -22,6 +22,7 @@ var (
 
 // UsernameRegex function to validate username
 var UsernameRegex = regexp.MustCompile("^[A-Za-z0-9_.]+$")
+var UsernameInverseRegex = regexp.MustCompile("[^A-Za-z0-9_.]+")
 
 // EmailRegex function to validate email
 var EmailRegex = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
