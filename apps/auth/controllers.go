@@ -243,6 +243,7 @@ func (a *App) Facebook(w http.ResponseWriter, r *http.Request) {
 				utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 				return
 			}
+			a.AuthCache.SAdd("usernames", username)
 		default:
 			utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
@@ -260,6 +261,7 @@ func (a *App) Facebook(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+
 	utils.RespondWithJSON(w, http.StatusOK, &token)
 }
 
@@ -300,6 +302,7 @@ func (a *App) Google(w http.ResponseWriter, r *http.Request) {
 				utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 				return
 			}
+			a.AuthCache.SAdd("usernames", username)
 		default:
 			utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
