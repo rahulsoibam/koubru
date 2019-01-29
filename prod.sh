@@ -1,4 +1,4 @@
-#! 
+export API_PORT=':80'
 # PostgreSQL related env variables
 # DB_HOST='koubru-dev-db.caawnufl2ajb.ap-south-1.rds.amazonaws.com'
 export DB_HOST='koubru-dev-db-cluster.cluster-caawnufl2ajb.ap-south-1.rds.amazonaws.com'

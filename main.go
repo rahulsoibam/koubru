@@ -99,7 +99,7 @@ func main() {
 	usa := users.App{}
 	r.Mount("/users", usa.Routes())
 
-	log.Fatal(http.ListenAndServe(":8080", r))
+	log.Fatal(http.ListenAndServe(os.Getenv("API_PORT"), r))
 
 }
 
