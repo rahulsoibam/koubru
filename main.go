@@ -1,0 +1,194 @@
+package main
+
+import (
+	"github.com/sendgrid/sendgrid-go"
+	"database/sql"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"sync"
+	"time"
+
+	"github.com/rahulsoibam/koubru-prod-api/authutils"
+	koubrumiddleware "github.com/rahulsoibam/koubru-prod-api/middleware"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
+
+	"github.com/go-redis/redis"
+	"github.com/sony/sonyflake"
+
+	// Koubru Apps
+	"github.com/rahulsoibam/koubru-prod-api/apps/auth"
+	"github.com/rahulsoibam/koubru-prod-api/apps/categories"
+	"github.com/rahulsoibam/koubru-prod-api/apps/countries"
+	"github.com/rahulsoibam/koubru-prod-api/apps/explore"
+	"github.com/rahulsoibam/koubru-prod-api/apps/feed"
+	"github.com/rahulsoibam/koubru-prod-api/apps/opinions"
+	"github.com/rahulsoibam/koubru-prod-api/apps/search"
+	"github.com/rahulsoibam/koubru-prod-api/apps/topics"
+	"github.com/rahulsoibam/koubru-prod-api/apps/user"
+	"github.com/rahulsoibam/koubru-prod-api/apps/users"
+
+	_ "github.com/joho/godotenv/autoload"
+	_ "github.com/lib/pq"
+)
+
+var (
+	db           *sql.DB
+	authCache    *redis.Client
+	authDB       *sql.DB
+	uploader     *s3manager.Uploader
+	flake        *sonyflake.Sonyflake
+	setupOnce    sync.Once
+	sendgridClient *sendgrid.Client
+	argon2Params *authutils.Params
+	koubruMiddleware *koubrumiddleware.Middleware
+)
+
+// MaxUploadSize is the max upload size of videos (including accompanying form data) in bytes
+const MaxUploadSize = 200 << 20
+
+func main() {
+	initializeDB()
+	initializeAuthDB()
+	initializeAuthCache()
+	initializeS3Uploader()
+	initializeSonyflake()
+	initializeArgon2Params()
+	initializeSendgridClient()
+	initializeKoubruMiddleware()
+	r := chi.NewRouter()
+	r.Use(middleware.RequestID)
+	r.Use(middleware.RealIP)
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
+
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("."))
+	})
+	fa := feed.App{}
+	r.Mount("/", fa.Routes())
+	oa := opinions.App{}
+	r.Mount("/opinions", oa.Routes())
+	aa := auth.App{
+		AuthCache: authCache, 
+		Middleware: koubruMiddleware, 
+		DB: db, 
+		AuthDB: authDB, 
+		// SendgridClient: sendgridClient, 
+		Argon2Params: argon2Params,
+	}
+	r.Mount("/auth", aa.Routes())
+	ca := categories.App{}
+	r.Mount("/categories", ca.Routes())
+	coa := countries.App{}
+	r.Mount("/countries", coa.Routes())
+	ea := explore.App{}
+	r.Mount("/explore", ea.Routes())
+	sa := search.App{}
+	r.Mount("/search", sa.Routes())
+	ta := topics.App{}
+	r.Mount("/topics", ta.Routes())
+	ua := user.App{}
+	r.Mount("/user", ua.Routes())
+	usa := users.App{}
+	r.Mount("/users", usa.Routes())
+
+	log.Fatal(http.ListenAndServe(":8080", r))
+
+}
+
+// Initialize sets up the database connection, s3 session and routes for the app
+func initializeAuthDB() {
+	var err error
+	authDBString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
+		os.Getenv("AUTH_DB_USERNAME"),
+		os.Getenv("AUTH_DB_PASSWORD"),
+		os.Getenv("AUTH_DB_HOST"),
+		os.Getenv("AUTH_DB_PORT"),
+		os.Getenv("AUTH_DB_NAME"))
+	authDB, err = sql.Open("postgres", authDBString)
+	if err != nil {
+		log.Fatal("credsdb: ", err)
+	}
+	err = authDB.Ping()
+	if err != nil {
+		log.Fatal("authDB: ", err)
+	}
+}
+
+func initializeAuthCache() {
+	client := redis.NewClient(&redis.Options{
+		Addr:     os.Getenv("AUTH_REDIS_ADDRESS"),
+		Password: os.Getenv("AUTH_REDIS_PASSWORD"),
+		DB:       0,
+	})
+
+	_, err := client.Ping().Result()
+	if err != nil {
+		log.Fatal("redis: ", err)
+	}
+	authCache = client
+}
+
+func initializeDB() {
+	var err error
+	dnsString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
+		os.Getenv("DB_USERNAME"),
+		os.Getenv("DB_PASSWORD"),
+		os.Getenv("DB_HOST"),
+		os.Getenv("DB_PORT"),
+		os.Getenv("DB_NAME"))
+	db, err = sql.Open("postgres", dnsString)
+	if err != nil {
+		log.Fatal("db: ", err)
+	}
+	err = db.Ping()
+	if err != nil {
+		log.Fatal("db: ", err)
+	}
+}
+
+func initializeS3Uploader() {
+	sess, err := session.NewSession(&aws.Config{Region: aws.String(os.Getenv("AWS_REGION"))})
+	if err != nil {
+		log.SetOutput(os.Stdout)
+		log.Fatal("s3Uploader: ", err)
+	}
+	uploader = s3manager.NewUploader(sess)
+	if err != nil {
+		log.Fatal("s3Uploader: ", err)
+	}
+}
+
+func initializeSonyflake() {
+	// Snowflake inspired UUID Generator
+	settings := sonyflake.Settings{}
+	settings.StartTime = time.Now().UTC()
+	flake = sonyflake.NewSonyflake(settings)
+}
+
+func initializeArgon2Params() {
+	argon2Params = &authutils.Params{
+		Memory:      64 * 1024,
+		Iterations:  3,
+		Parallelism: 2,
+		SaltLength:  16,
+		KeyLength:   32,
+	}
+}
+
+func initializeSendgridClient() {
+	sendgridClient = sendgrid.NewSendClient(os.Getenv("SENDGRID_API_KEY"))
+}
+
+func initializeKoubruMiddleware() {
+	koubruMiddleware = &koubrumiddleware.Middleware {
+		AuthCache: authCache,
+	}
+}
