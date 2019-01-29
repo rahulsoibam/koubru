@@ -204,9 +204,7 @@ func (a *App) Facebook(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch err {
 		case sql.ErrNoRows:
-			var nu NewUser
-
-			utils.RespondWithJSON(w, http.StatusUnauthorized, &nu)
+			utils.RespondWithJSON(w, http.StatusUnauthorized, &fu)
 			return
 		default:
 			utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
