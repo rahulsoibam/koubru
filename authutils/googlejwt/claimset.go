@@ -28,7 +28,7 @@ func (gu *ClaimSet) GenerateUsername(authCache *redis.Client) (string, error) {
 	username := utils.UsernameInverseRegex.ReplaceAllString(gu.Name, "")
 	if utils.UsernameRegex.MatchString(username) {
 		username = strings.ToLower(username)
-		err := utils.ValidateEmail(username)
+		err := utils.ValidateUsername(username)
 		if err != nil {
 			return "", err
 		}
