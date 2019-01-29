@@ -191,7 +191,7 @@ func (a *App) Facebook(w http.ResponseWriter, r *http.Request) {
 		Email string `json:"email"`
 	}
 
-	var fu *FacebookUser
+	var fu FacebookUser
 	fmt.Println("decoding json")
 	err = json.NewDecoder(response.Body).Decode(&fu)
 	if err != nil {
@@ -204,7 +204,7 @@ func (a *App) Facebook(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch err {
 		case sql.ErrNoRows:
-			var nu *NewUser
+			var nu NewUser
 			nu.Username = ""
 			nu.Email = fu.Email
 			nu.Picture = fu.Picture.Data.URL
