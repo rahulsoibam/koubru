@@ -67,6 +67,7 @@ func (a *App) Create(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	utils.RespondWithMessage(w, http.StatusOK, "category "+c.Name+" created successfully")
 }
 
 // Get details of a category
