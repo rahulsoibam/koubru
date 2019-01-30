@@ -7,10 +7,10 @@ func (a *App) dbListTopics(query string, limit int, offset int) (*[]Category, er
 	var rows *sql.Rows
 	var err error
 	if query == "" {
-		rows, err = a.DB.Query("SELECT category_id, name FROM Category ORDER BY created_on LIMIT = $1 OFFSET = $2", limit, offset)
+		rows, err = a.DB.Query("SELECT category_id, name FROM Category ORDER BY created_on LIMIT $1 OFFSET $2", limit, offset)
 	} else {
 		query = query + "%"
-		rows, err = a.DB.Query("SELECT category_id, name FROM Category WHERE name LIKE $1 ORDER BY created ON LIMIT=$2 OFFSET=$3", query, limit, offset)
+		rows, err = a.DB.Query("SELECT category_id, name FROM Category WHERE name LIKE $1 ORDER BY created_on LIMIT $2 OFFSET $3", query, limit, offset)
 	}
 	if err == sql.ErrNoRows {
 		return &categories, nil
