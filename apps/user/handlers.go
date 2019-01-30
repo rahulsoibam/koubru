@@ -1,11 +1,11 @@
 package user
 
 import (
-	"database/sql"
 	"errors"
 	"net/http"
 
 	"github.com/go-chi/chi"
+	"github.com/lib/pq"
 
 	"github.com/rahulsoibam/koubru-prod-api/middleware"
 	"github.com/rahulsoibam/koubru-prod-api/utils"
@@ -150,32 +150,21 @@ func (a *App) FollowUser(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	response, _ := a.DB.Exec("INSERT INTO UserMap (user_id, follower_id) VALUES ($1, $2)", userID, followerID)
-	count, err := response.RowsAffected()
+	_, err = a.DB.Exec("INSERT INTO UserMap (user_id, follower_id) VALUES ($1, $2)", userID, followerID)
 	if err != nil {
+		if e, ok := err.(*pq.Error); ok {
+			if e.Code == "23505" {
+				utils.RespondWithError(w, http.StatusBadRequest, "You are already following this user")
+				return
+			} else {
+				utils.RespondWithError(w, http.StatusInternalServerError, e.Detail)
+				return
+			}
+		}
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-
-	if count == 0 {
-		utils.RespondWithError(w, http.StatusBadRequest, "You have already followed this user")
-		return
-	}
-
 	utils.RespondWithJSON(w, http.StatusOK, "You have followed "+username)
-	// if err != nil {
-	// 	if e, ok := err.(*pq.Error); ok {
-	// 		if e.Code == "23505" {
-	// 			utils.RespondWithError(w, http.StatusBadRequest, "You are already following this user")
-	// 			return
-	// 		} else {
-	// 			utils.RespondWithError(w, http.StatusInternalServerError, e.Detail)
-	// 			return
-	// 		}
-	// 	}
-	// 	utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
-	// 	return
-	// }
 }
 
 func (a *App) UnfollowUser(w http.ResponseWriter, r *http.Request) {
@@ -187,16 +176,20 @@ func (a *App) UnfollowUser(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	_, err = a.DB.Exec("DELETE FROM UserMap WHERE user_id = $1 AND follower_id = $2", userID, followerID)
+	response, err := a.DB.Exec("DELETE FROM UserMap WHERE user_id = $1 AND follower_id = $2", userID, followerID)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			utils.RespondWithJSON(w, http.StatusBadRequest, "You do not follow this user")
-			return
-		}
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-
+	count, err := response.RowsAffected()
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if count == 0 {
+		utils.RespondWithJSON(w, http.StatusBadRequest, "You do not follow this user")
+		return
+	}
 	utils.RespondWithJSON(w, http.StatusOK, "User unfollowed")
 }
 
