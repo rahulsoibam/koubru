@@ -94,6 +94,13 @@ func main() {
 	}
 	r.Mount("/user", ua.Routes())
 
+	usa := users.App{
+		DB:         db,
+		Cache:      cache,
+		Middleware: koubruMiddleware,
+	}
+	r.Mount("/users", usa.Routes())
+
 	ca := categories.App{}
 	r.Mount("/categories", ca.Routes())
 	coa := countries.App{}
@@ -104,8 +111,6 @@ func main() {
 	r.Mount("/search", sa.Routes())
 	ta := topics.App{}
 	r.Mount("/topics", ta.Routes())
-	usa := users.App{}
-	r.Mount("/users", usa.Routes())
 
 	log.Fatal(http.ListenAndServe(os.Getenv("API_PORT"), r))
 

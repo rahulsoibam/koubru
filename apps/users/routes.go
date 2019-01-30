@@ -7,7 +7,7 @@ import (
 // Routes related to users
 func (a App) Routes() chi.Router {
 	r := chi.NewRouter()
-	r.Get("/", a.List)
+	// r.Get("/", a.List)
 	r.Route("/{username}", func(r chi.Router) {
 		r.Get("/", a.Get)
 		r.Get("/followers", a.Followers)
