@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/go-chi/chi"
 	"github.com/lib/pq"
 	"github.com/rahulsoibam/koubru-prod-api/middleware"
 	"github.com/rahulsoibam/koubru-prod-api/utils"
@@ -67,7 +68,7 @@ func (a *App) Create(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	utils.RespondWithMessage(w, http.StatusOK, "category "+c.Name+" created successfully")
+	utils.RespondWithJSON(w, http.StatusOK, &cres)
 }
 
 // Get details of a category
@@ -77,12 +78,54 @@ func (a *App) Get(w http.ResponseWriter, r *http.Request) {
 
 // Follow to follow a category
 func (a *App) Follow(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Follow a category"))
+	ctx := r.Context()
+	id := chi.URLParam(r, "id")
+	followerID, ok := ctx.Value(middleware.UserCtxKeys(0)).(int64)
+	if !ok {
+		utils.RespondWithError(w, http.StatusUnauthorized, "Invalid user. Please try authenticating again")
+		return
+	}
+	_, err := a.DB.Exec("INSERT INTO Category_Follower (category_id, user_id) VALUES ($1, $2)", id, followerID)
+	if err != nil {
+		if e, ok := err.(*pq.Error); ok {
+			if e.Code == "23505" {
+				utils.RespondWithError(w, http.StatusBadRequest, "You are already following this category")
+				return
+			} else {
+				utils.RespondWithError(w, http.StatusInternalServerError, e.Detail)
+				return
+			}
+		}
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	utils.RespondWithMessage(w, http.StatusOK, "Successfully followed category")
 }
 
 // Unfollow to unfollow a category
 func (a *App) Unfollow(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Unfollow a category"))
+	ctx := r.Context()
+	id := chi.URLParam(r, "id")
+	followerID, ok := ctx.Value(middleware.UserCtxKeys(0)).(int64)
+	if !ok {
+		utils.RespondWithError(w, http.StatusUnauthorized, "Invalid user. Please try authticating again")
+		return
+	}
+	response, err := a.DB.Exec("DELETE FROM Category_Follower WHERE category_id=$1 AND user_id=$2", id, followerID)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	count, err := response.RowsAffected()
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if count == 0 {
+		utils.RespondWithError(w, http.StatusBadRequest, "You do not follow this category")
+		return
+	}
+	utils.RespondWithMessage(w, http.StatusOK, "Category unfollowed")
 }
 
 // BulkFollow to follow many categories at once

@@ -11,12 +11,14 @@ func (a *App) Routes() chi.Router {
 	r.Post("/follow", a.BulkFollow)
 	r.Route("/{id}", func(r chi.Router) {
 		r.Get("/", a.Get)
-		r.Put("/follow", a.Follow)
-		r.Delete("/follow", a.Unfollow)
 	})
 	r.Group(func(r chi.Router) {
 		r.Use(a.Middleware.UserCtx)
 		r.Post("/", a.Create)
+		r.Route("/{id}", func(r chi.Router) {
+			r.Put("/follow", a.Follow)
+			r.Delete("/follow", a.Unfollow)
+		})
 	})
 	return r
 }
