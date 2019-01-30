@@ -33,7 +33,6 @@ import (
 	"github.com/rahulsoibam/koubru-prod-api/apps/search"
 	"github.com/rahulsoibam/koubru-prod-api/apps/topics"
 	"github.com/rahulsoibam/koubru-prod-api/apps/user"
-	"github.com/rahulsoibam/koubru-prod-api/apps/users"
 
 	_ "github.com/joho/godotenv/autoload"
 	_ "github.com/lib/pq"
@@ -94,12 +93,12 @@ func main() {
 	}
 	r.Mount("/user", ua.Routes())
 
-	usa := users.App{
-		DB:         db,
-		Cache:      cache,
-		Middleware: koubruMiddleware,
-	}
-	r.Mount("/users", usa.Routes())
+	// usa := users.App{
+	// 	DB:         db,
+	// 	Cache:      cache,
+	// 	Middleware: koubruMiddleware,
+	// }
+	// r.Mount("/users", usa.Routes())
 
 	ca := categories.App{}
 	r.Mount("/categories", ca.Routes())

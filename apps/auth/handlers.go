@@ -214,7 +214,7 @@ func (a *App) Facebook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if response.StatusCode != http.StatusOK {
-		utils.RespondWithJSON(w, http.StatusBadRequest, &response.Body)
+		utils.RespondWithError(w, http.StatusBadRequest, "Error fetching details from facebook. Check the token and try again")
 		return
 	}
 

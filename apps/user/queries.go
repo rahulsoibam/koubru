@@ -4,6 +4,16 @@ import (
 	"database/sql"
 )
 
+func (a *App) dbGetUserIDUsingUsername(username string) (int64, error) {
+	var userID int64
+	var err error
+	err = a.DB.QueryRow("SELECT user_id from KUser WHERE username = $1", username).Scan(&userID)
+	if err != nil {
+		return 0, err
+	}
+	return userID, nil
+}
+
 func (a *App) dbGetUserByID(userID int64) (*User, error) {
 	var u User
 	err := a.DB.QueryRow("SELECT user_id, username, full_name, email_verified, photo_url, bio FROM KUser WHERE user_id=$1", userID).Scan(&u.ID, &u.Username, &u.FullName, &u.EmailVerfied, &u.PhotoURL, &u.Bio)
