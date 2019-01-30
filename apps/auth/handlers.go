@@ -280,7 +280,7 @@ func (a *App) Google(w http.ResponseWriter, r *http.Request) {
 		iosaud, andaud,
 	})
 	if err != nil {
-		utils.RespondWithJSON(w, http.StatusBadRequest, err.Error())
+		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	cs, err := googlejwt.Decode(googleIDToken)
@@ -361,7 +361,7 @@ func (a *App) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.RespondWithJSON(w, http.StatusOK, "Logged out successfully")
+	utils.RespondWithMessage(w, http.StatusOK, "Logged out successfully")
 }
 
 // CheckEmail queries the database and checks if a username is already registered
@@ -378,7 +378,7 @@ func (a *App) CheckEmail(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithError(w, http.StatusBadRequest, "Email "+email+" is already used by another account.")
 		return
 	}
-	utils.RespondWithJSON(w, http.StatusOK, email+" is a valid email")
+	utils.RespondWithMessage(w, http.StatusOK, email+" is a valid email")
 }
 
 // CheckUsername queries the database and checks if an email is already registered
@@ -395,7 +395,7 @@ func (a *App) CheckUsername(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithError(w, http.StatusBadRequest, "Username "+username+" is already used by another account.")
 		return
 	}
-	utils.RespondWithJSON(w, http.StatusOK, username+" is a valid username")
+	utils.RespondWithMessage(w, http.StatusOK, username+" is a valid username")
 }
 
 // VerifyEmail verifies an email by sending a one time link

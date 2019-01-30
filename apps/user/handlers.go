@@ -164,7 +164,7 @@ func (a *App) FollowUser(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	utils.RespondWithJSON(w, http.StatusOK, "You have followed "+username)
+	utils.RespondWithMessage(w, http.StatusOK, "You have followed "+username)
 }
 
 func (a *App) UnfollowUser(w http.ResponseWriter, r *http.Request) {
@@ -187,10 +187,10 @@ func (a *App) UnfollowUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if count == 0 {
-		utils.RespondWithJSON(w, http.StatusBadRequest, "You do not follow this user")
+		utils.RespondWithError(w, http.StatusBadRequest, "You do not follow this user")
 		return
 	}
-	utils.RespondWithJSON(w, http.StatusOK, "User unfollowed")
+	utils.RespondWithMessage(w, http.StatusOK, "User unfollowed")
 }
 
 func (a *App) validateUsernameAndGetID(username string) (int64, error) {
