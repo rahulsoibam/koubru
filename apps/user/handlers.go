@@ -1,6 +1,7 @@
 package user
 
 import (
+	"database/sql"
 	"errors"
 	"net/http"
 
@@ -186,20 +187,16 @@ func (a *App) UnfollowUser(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	response, err := a.DB.Exec("DELETE FROM UserMap WHERE user_id = $1 AND follower_id = $2", userID, followerID)
+	_, err = a.DB.Exec("DELETE FROM UserMap WHERE user_id = $1 AND follower_id = $2", userID, followerID)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			utils.RespondWithJSON(w, http.StatusBadRequest, "You do not follow this user")
+			return
+		}
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	count, err := response.RowsAffected()
-	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	if count == 0 {
-		utils.RespondWithJSON(w, http.StatusBadRequest, "You do not follow this user")
-		return
-	}
+
 	utils.RespondWithJSON(w, http.StatusOK, "User unfollowed")
 }
 
