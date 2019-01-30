@@ -15,7 +15,7 @@ func (a *App) dbGetUserIDUsingUsername(username string) (int64, error) {
 }
 
 func (a *App) dbGetUserByID(userID int64) (*User, error) {
-	var u User
+	u := User{}
 	err := a.DB.QueryRow("SELECT user_id, username, full_name, email_verified, photo_url, bio FROM KUser WHERE user_id=$1", userID).Scan(&u.ID, &u.Username, &u.FullName, &u.EmailVerfied, &u.PhotoURL, &u.Bio)
 	if err != nil {
 		return nil, err
@@ -35,7 +35,7 @@ func (a *App) dbGetUserByID(userID int64) (*User, error) {
 }
 
 func (a *App) dbGetFollowingByID(userID int64) (*[]FollowUser, error) {
-	var fus []FollowUser
+	fus := []FollowUser{}
 	rows, err := a.DB.Query(`
 	SELECT 
 		u.user_id, 
@@ -66,7 +66,7 @@ func (a *App) dbGetFollowingByID(userID int64) (*[]FollowUser, error) {
 }
 
 func (a *App) dbGetFollowersByID(userID int64) (*[]FollowUser, error) {
-	var fus []FollowUser
+	fus := []FollowUser{}
 	rows, err := a.DB.Query(`
 	SELECT 
 		u.user_id, u.username, u.full_name, u.photo_url, map.followed_on
