@@ -100,7 +100,10 @@ func main() {
 	// }
 	// r.Mount("/users", usa.Routes())
 
-	ca := categories.App{}
+	ca := categories.App{
+		DB:         db,
+		Middleware: koubruMiddleware,
+	}
 	r.Mount("/categories", ca.Routes())
 	coa := countries.App{}
 	r.Mount("/countries", coa.Routes())
