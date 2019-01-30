@@ -19,7 +19,7 @@ func (a *App) Routes() chi.Router {
 		r.Get("/opinions", a.Opinions)
 		r.Get("/topics", a.Topics)
 	})
-	r.Route("s/{username}", func(r chi.Router) {
+	r.Route("/{username}", func(r chi.Router) {
 		r.Get("/", a.UsersGet)
 		r.Get("/followers", a.UsersFollowers)
 		r.Get("/following", a.UsersFollowing)
