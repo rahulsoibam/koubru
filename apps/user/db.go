@@ -6,7 +6,7 @@ import (
 
 func dbGetUserByID(db *sql.DB, userID int64) (*User, error) {
 	var u User
-	err := db.QueryRow("SELECT user_id, username, full_name, email_verified, bio FROM KUser WHERE user_id=$1", userID).Scan(&u.ID, &u.Username, &u.FullName, &u.Bio)
+	err := db.QueryRow("SELECT user_id, username, full_name, email_verified, photo_url, bio FROM KUser WHERE user_id=$1", userID).Scan(&u.ID, &u.Username, &u.FullName, &u.EmailVerfied, &u.PhotoURL, &u.Bio)
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +43,7 @@ func dbGetFollowingByID(db *sql.DB, userID int64) (*[]FollowUser, error) {
 	defer rows.Close()
 	for rows.Next() {
 		var fu FollowUser
-		if err := rows.Scan(&fu.ID, &fu.Username, &fu.FullName, &fu.Picture, &fu.FollowedOn); err != nil {
+		if err := rows.Scan(&fu.ID, &fu.Username, &fu.FullName, &fu.PhotoURL, &fu.FollowedOn); err != nil {
 			return nil, err
 		}
 		fus = append(fus, fu)
@@ -70,7 +70,7 @@ func dbGetFollowersByID(db *sql.DB, userID int64) (*[]FollowUser, error) {
 	defer rows.Close()
 	for rows.Next() {
 		var fu FollowUser
-		if err := rows.Scan(&fu.ID, &fu.Username, &fu.FullName, &fu.Picture, &fu.FollowedOn); err != nil {
+		if err := rows.Scan(&fu.ID, &fu.Username, &fu.FullName, &fu.PhotoURL, &fu.FollowedOn); err != nil {
 			return nil, err
 		}
 		fus = append(fus, fu)

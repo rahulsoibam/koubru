@@ -39,7 +39,13 @@ func (a App) Followers(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	utils.RespondWithJSON(w, http.StatusOK, &followers)
+
+	// Construction of response
+	result := struct {
+		Followers *[]FollowUser `json:"followers"`
+	}{Followers: followers}
+
+	utils.RespondWithJSON(w, http.StatusOK, &result)
 }
 
 // Following to list users whom the authenticated user is following
@@ -51,7 +57,12 @@ func (a App) Following(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	utils.RespondWithJSON(w, http.StatusOK, &following)
+
+	// Construction of response
+	result := struct {
+		Following *[]FollowUser `json:"following"`
+	}{Following: following}
+	utils.RespondWithJSON(w, http.StatusOK, &result)
 }
 
 // Opinions of authenticated user

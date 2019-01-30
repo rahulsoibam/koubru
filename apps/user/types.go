@@ -8,7 +8,7 @@ type User struct {
 	Username     string `json:"username"`
 	EmailVerfied bool   `json:"email_verified"`
 	FullName     string `json:"full_name"`
-	Picture      string `json:"picture"`
+	PhotoURL     string `json:"picture"`
 	Bio          string `json:"bio,omitempty"`
 	Counts       struct {
 		Followers int64 `json:"followers"`
@@ -23,6 +23,6 @@ type FollowUser struct {
 	ID         int64     `json:"id"`
 	Username   string    `json:"username"`
 	FullName   string    `json:"full_name"`
-	Picture    string    `json:"picture"`
+	PhotoURL   string    `json:"picture"`
 	FollowedOn time.Time `json:"followed_on"`
 }
