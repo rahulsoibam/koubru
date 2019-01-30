@@ -41,11 +41,11 @@ func (a App) Followers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Construction of response
-	result := struct {
-		Followers *[]FollowUser `json:"followers"`
-	}{Followers: followers}
+	// result := struct {
+	// 	Followers *[]FollowUser `json:"followers"`
+	// }{Followers: followers}
 
-	utils.RespondWithJSON(w, http.StatusOK, &result)
+	utils.RespondWithJSON(w, http.StatusOK, &followers)
 }
 
 // Following to list users whom the authenticated user is following
@@ -59,10 +59,10 @@ func (a App) Following(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Construction of response
-	result := struct {
-		Following *[]FollowUser `json:"following"`
-	}{Following: following}
-	utils.RespondWithJSON(w, http.StatusOK, &result)
+	// result := struct {
+	// 	Following *[]FollowUser `json:"following"`
+	// }{Following: following}
+	utils.RespondWithJSON(w, http.StatusOK, &following)
 }
 
 // Opinions of authenticated user

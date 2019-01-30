@@ -75,7 +75,7 @@ func dbGetUserIDUsingGoogle(db *sql.DB, googleID string) (int64, error) {
 func dbRegisterUserUsingFacebook(db *sql.DB, fu FacebookUser, username string) (int64, error) {
 	var err error
 	var userID int64
-	err = db.QueryRow("INSERT INTO KUser (username, full_name, facebook) VALUES ($1, $2, $3) RETURNING user_id", username, fu.Name, fu.ID).Scan(&userID)
+	err = db.QueryRow("INSERT INTO KUser (username, full_name, photo_url, facebook) VALUES ($1, $2, $3, $4) RETURNING user_id", username, fu.Name, fu.Picture.Data.URL, fu.ID).Scan(&userID)
 	if err != nil {
 		return 0, err
 	}
@@ -85,7 +85,7 @@ func dbRegisterUserUsingFacebook(db *sql.DB, fu FacebookUser, username string) (
 func dbRegisterUserUsingGoogle(db *sql.DB, cs *googlejwt.ClaimSet, username string) (int64, error) {
 	var err error
 	var userID int64
-	err = db.QueryRow("INSERT INTO KUser (username, full_name, google) VALUES ($1, $2, $3) RETURNING user_id", username, cs.Name, cs.Sub).Scan(&userID)
+	err = db.QueryRow("INSERT INTO KUser (username, full_name, photo_url, google) VALUES ($1, $2, $3, $4) RETURNING user_id", username, cs.Name, cs.Picture, cs.Sub).Scan(&userID)
 	if err != nil {
 		return 0, err
 	}
