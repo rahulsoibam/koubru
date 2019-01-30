@@ -5,7 +5,7 @@ import (
 )
 
 func dbGetUserByID(db *sql.DB, userID int64) (*User, error) {
-	var u *User
+	var u User
 	err := db.QueryRow("SELECT user_id, username, full_name, email_verified, bio FROM KUser WHERE user_id=$1", userID).Scan(&u.ID, &u.Username, &u.FullName, &u.Bio)
 	if err != nil {
 		return nil, err
@@ -21,7 +21,7 @@ func dbGetUserByID(db *sql.DB, userID int64) (*User, error) {
 		return nil, err
 	}
 	// TODO Add topic and opinion count when their tables are created
-	return u, nil
+	return &u, nil
 }
 
 func dbGetFollowingByID(db *sql.DB, userID int64) (*[]FollowUser, error) {
