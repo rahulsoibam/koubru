@@ -19,6 +19,8 @@ export AUTH_DB_PORT='5432'
 export AUTH_REDIS_ADDRESS='koubruauthredis-0001-001.qwpnzg.0001.aps1.cache.amazonaws.com:6379'
 export AUTH_REDIS_PASSWORD=''
 
+export CACHE_REDIS_ADDRESS='koubruauthredis-0001-002.qwpnzg.0001.aps1.cache.amazonaws.com'
+export CACHE_REDIS_PASSWORD=''
 # AWS related env variables
 export AWS_REGION='ap-south-1'
 export S3_BUCKET='media.rahulsoibam.me'

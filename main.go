@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/sendgrid/sendgrid-go"
 	"database/sql"
 	"fmt"
 	"log"
@@ -9,6 +8,8 @@ import (
 	"os"
 	"sync"
 	"time"
+
+	sendgrid "github.com/sendgrid/sendgrid-go"
 
 	"github.com/rahulsoibam/koubru-prod-api/authutils"
 	koubrumiddleware "github.com/rahulsoibam/koubru-prod-api/middleware"
@@ -39,14 +40,15 @@ import (
 )
 
 var (
-	db           *sql.DB
-	authCache    *redis.Client
-	authDB       *sql.DB
-	uploader     *s3manager.Uploader
-	flake        *sonyflake.Sonyflake
-	setupOnce    sync.Once
-	sendgridClient *sendgrid.Client
-	argon2Params *authutils.Params
+	db               *sql.DB
+	authCache        *redis.Client
+	cache            *redis.Client
+	authDB           *sql.DB
+	uploader         *s3manager.Uploader
+	flake            *sonyflake.Sonyflake
+	setupOnce        sync.Once
+	sendgridClient   *sendgrid.Client
+	argon2Params     *authutils.Params
 	koubruMiddleware *koubrumiddleware.Middleware
 )
 
@@ -76,14 +78,22 @@ func main() {
 	oa := opinions.App{}
 	r.Mount("/opinions", oa.Routes())
 	aa := auth.App{
-		AuthCache: authCache, 
-		Middleware: koubruMiddleware, 
-		DB: db, 
-		AuthDB: authDB, 
-		// SendgridClient: sendgridClient, 
+		AuthCache:  authCache,
+		Middleware: koubruMiddleware,
+		DB:         db,
+		AuthDB:     authDB,
+		// SendgridClient: sendgridClient,
 		Argon2Params: argon2Params,
 	}
 	r.Mount("/auth", aa.Routes())
+
+	ua := user.App{
+		DB:         db,
+		Cache:      cache,
+		Middleware: koubruMiddleware,
+	}
+	r.Mount("/user", ua.Routes())
+
 	ca := categories.App{}
 	r.Mount("/categories", ca.Routes())
 	coa := countries.App{}
@@ -94,8 +104,6 @@ func main() {
 	r.Mount("/search", sa.Routes())
 	ta := topics.App{}
 	r.Mount("/topics", ta.Routes())
-	ua := user.App{}
-	r.Mount("/user", ua.Routes())
 	usa := users.App{}
 	r.Mount("/users", usa.Routes())
 
@@ -134,6 +142,20 @@ func initializeAuthCache() {
 		log.Fatal("redis: ", err)
 	}
 	authCache = client
+}
+
+func initializeCache() {
+	client := redis.NewClient(&redis.Options{
+		Addr:     os.Getenv("CACHE_REDIS_ADDRESS"),
+		Password: os.Getenv("CACHE_REDIS_PASSWORD"),
+		DB:       0,
+	})
+
+	_, err := client.Ping().Result()
+	if err != nil {
+		log.Fatal("redis: ", err)
+	}
+	cache = client
 }
 
 func initializeDB() {
@@ -188,7 +210,7 @@ func initializeSendgridClient() {
 }
 
 func initializeKoubruMiddleware() {
-	koubruMiddleware = &koubrumiddleware.Middleware {
+	koubruMiddleware = &koubrumiddleware.Middleware{
 		AuthCache: authCache,
 	}
 }
