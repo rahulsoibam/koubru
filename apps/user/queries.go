@@ -113,7 +113,7 @@ func (a *App) dbListTopicsByUserID(userID int64, limit int, offset int, orderBy 
 		Topic t LEFT JOIN Topic_Category tc ON t.topic_id = tc.topic_id LEFT JOIN Category c ON c.category_id = tc.category_id LEFT JOIN KUser as u ON u.user_id = t.created_by
 	WHERE u.user_id=$1
 		GROUP BY t.topic_id, u.user_id
-	ORDER BY `+orderBy+" "+order+`
+	ORDER BY t.`+orderBy+" "+order+`
 	LIMIT $2 OFFSET $3
 	`, userID, limit, offset)
 	if err == sql.ErrNoRows {

@@ -29,8 +29,8 @@ func (a *App) List(w http.ResponseWriter, r *http.Request) {
 
 	var orderBy string
 	switch sort {
-	case "":
-	case "created":
+	case "",
+		"created":
 		orderBy = "created_on"
 	default:
 		utils.RespondWithError(w, http.StatusBadRequest, "sort value invalid")
