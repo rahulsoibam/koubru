@@ -19,7 +19,7 @@ type Topic struct {
 	ID         int64      `json:"id"`
 	Title      string     `json:"title"`
 	Details    string     `json:"details"`
-	CreatedOn  time.Time  `json:"created_by"`
+	CreatedOn  time.Time  `json:"created_on"`
 	CreatedBy  User       `json:"created_by"`
 	Categories []Category `json:"categories"`
 }
