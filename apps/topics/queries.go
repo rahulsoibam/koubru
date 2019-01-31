@@ -169,7 +169,7 @@ func (a *App) dbGetTopicByID(topicID int64) (*Topic, error) {
 		u.full_name,
 		u.photo_url,
 		array_agg(c.category_id),
-		array_agg(c.name),
+		array_agg(c.name)
 	FROM
 		Topic t INNER JOIN Topic_Category tc USING (topic_id) INNER JOIN Category c USING(category_id) INNER JOIN KUser as u ON t.created_by=u.user_id
 	WHERE t.topic_id=$1
