@@ -125,8 +125,7 @@ func (a *App) dbAuthenticatedGetTopicByID(userID int64, topicID int64) (*Topic, 
 		u.photo_url
 		array_agg(c.category_id),
 		array_agg(c.name),
-		COUNT(DISTINCT tf.topic_id)
-		CASE WHEN EXISTS (SELECT 1 FROM topic_follower AS tf WHERE tf.topic_id = t.topic_id AND tf.followed_by=$1) THEN 1 ELSE 0 END AS is_following,
+		CASE WHEN EXISTS (SELECT 1 FROM topic_follower AS tf WHERE tf.topic_id = t.topic_id AND tf.followed_by=$1) THEN 1 ELSE 0 END AS is_following
 	FROM
 		Topic t INNER JOIN Topic_Category tc USING (topic_id) INNER JOIN Category c USING(category_id) INNER JOIN KUser as u ON t.created_by=u.user_id
 	WHERE t.topic_id=$1
@@ -136,7 +135,7 @@ func (a *App) dbAuthenticatedGetTopicByID(userID int64, topicID int64) (*Topic, 
 	var cids []sql.NullInt64
 	var cnames []sql.NullString
 
-	err := row.Scan(&t.ID, &t.Title, &t.Details, &t.CreatedOn, &t.CreatedBy.Username, &t.CreatedBy.FullName, &t.CreatedBy.Picture, pq.Array(&cids), pq.Array(&cnames), &t.Counts.Followers, &t.IsFollowing)
+	err := row.Scan(&t.ID, &t.Title, &t.Details, &t.CreatedOn, &t.CreatedBy.Username, &t.CreatedBy.FullName, &t.CreatedBy.Picture, pq.Array(&cids), pq.Array(&cnames), &t.IsFollowing)
 	if err != nil {
 		return nil, err
 	}
@@ -148,6 +147,11 @@ func (a *App) dbAuthenticatedGetTopicByID(userID int64, topicID int64) (*Topic, 
 			c.Name = cnames[i].String
 			t.Categories = append(t.Categories, c)
 		}
+	}
+
+	err = a.DB.QueryRow("SELECT COUNT(*) FROM Topic_Follower WHERE topic_id=$1", topicID).Scan(&t.Counts.Followers)
+	if err != nil {
+		return nil, err
 	}
 
 	return &t, nil
@@ -176,7 +180,7 @@ func (a *App) dbGetTopicByID(topicID int64) (*Topic, error) {
 	var cids []sql.NullInt64
 	var cnames []sql.NullString
 
-	err := row.Scan(&t.ID, &t.Title, &t.Details, &t.CreatedOn, &t.CreatedBy.Username, &t.CreatedBy.FullName, &t.CreatedBy.Picture, pq.Array(&cids), pq.Array(&cnames), &t.Counts.Followers)
+	err := row.Scan(&t.ID, &t.Title, &t.Details, &t.CreatedOn, &t.CreatedBy.Username, &t.CreatedBy.FullName, &t.CreatedBy.Picture, pq.Array(&cids), pq.Array(&cnames))
 	if err != nil {
 		return nil, err
 	}
@@ -190,6 +194,11 @@ func (a *App) dbGetTopicByID(topicID int64) (*Topic, error) {
 		}
 	}
 
+	err = a.DB.QueryRow("SELECT COUNT(*) FROM Topic_Follower WHERE topic_id=$1", topicID).Scan(&t.Counts.Followers)
+	if err != nil {
+		return nil, err
+	}
+
 	return &t, nil
 }
 func (a *App) dbCreateTopic(nt *NewTopic, userID int64) (*Topic, error) {
@@ -200,7 +209,6 @@ func (a *App) dbCreateTopic(nt *NewTopic, userID int64) (*Topic, error) {
 	var newTopicID int64
 	err = tx.QueryRow("INSERT INTO Topic (title, created_by) VALUES ($1, $2) RETURNING topic_id", nt.Title, userID).Scan(&newTopicID)
 	if err != nil {
-		panic(err)
 		tx.Rollback()
 		return nil, err
 	}
@@ -208,7 +216,6 @@ func (a *App) dbCreateTopic(nt *NewTopic, userID int64) (*Topic, error) {
 	for i := range nt.Categories {
 		_, err = tx.Exec("INSERT INTO Topic_Category (topic_id, category_id) VALUES ($1, $2)", nt.Categories[i].ID)
 		if err != nil {
-			panic(err)
 			tx.Rollback()
 			return nil, err
 		}
@@ -216,17 +223,14 @@ func (a *App) dbCreateTopic(nt *NewTopic, userID int64) (*Topic, error) {
 	_, err = tx.Exec("INSERT INTO Topic_Follower (topic_id, followed_by) VALUES ($1, $2)", newTopicID, userID)
 	if err != nil {
 		tx.Rollback()
-		panic(err)
 		return nil, err
 	}
 	err = tx.Commit()
 	if err != nil {
-		panic(err)
 		return nil, err
 	}
 	topic, err := a.dbAuthenticatedGetTopicByID(userID, newTopicID)
 	if err != nil {
-		panic(err)
 		return nil, err
 	}
 	return topic, nil
