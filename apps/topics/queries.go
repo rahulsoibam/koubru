@@ -80,7 +80,7 @@ func (a *App) dbListTopics(limit int, offset int, orderBy string, order string) 
 		Topic t LEFT JOIN Topic_Category tc ON t.topic_id = tc.topic_id LEFT JOIN Category c ON c.category_id = tc.category_id LEFT JOIN KUser as u ON u.user_id = t.created_by LEFT JOIN Topic_Follower tf ON tf.topic_id = t.topic_id
 	GROUP BY t.topic_id, u.user_id
 	ORDER BY t.`+orderBy+` `+order+`
-	LIMIT $2 OFFSET $3
+	LIMIT $1 OFFSET $2
 	`, limit, offset)
 	if err == sql.ErrNoRows {
 		return &topics, nil
