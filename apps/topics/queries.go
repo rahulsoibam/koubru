@@ -214,7 +214,7 @@ func (a *App) dbCreateTopic(nt *NewTopic, userID int64) (*Topic, error) {
 		return nil, err
 	}
 
-	for i := range nt.Categories {
+	for i := 0; i < 3; i++ {
 		fmt.Println(nt.Categories[i])
 		_, err = tx.Exec("INSERT INTO Topic_Category (topic_id, category_id) VALUES ($1, $2)", newTopicID, nt.Categories[i].ID)
 		if err != nil {
