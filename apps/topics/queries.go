@@ -22,7 +22,7 @@ func (a *App) dbListTopics(limit int, offset int, orderBy string, order string) 
 		array_agg(c.category_id),
 		array_agg(c.name)
 	FROM
-		Topic t LEFT JOIN Topic_Category tc ON t.topic_id = tc.topic_id LEFT JOIN Category c LEFT JOIN c.category_id = tc.category_id LEFT JOIN KUser as u ON u.user_id = t.created_by
+		Topic t LEFT JOIN Topic_Category tc ON t.topic_id = tc.topic_id LEFT JOIN Category c ON c.category_id = tc.category_id LEFT JOIN KUser as u ON u.user_id = t.created_by
 	GROUP BY t.topic_id, u.user_id
 	ORDER BY `+orderBy+" "+order+`
 	LIMIT $1 OFFSET $2
