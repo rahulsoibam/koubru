@@ -25,7 +25,7 @@ func (a *App) dbAuthenticatedListTopics(userID int64, limit int, offset int, ord
 		CASE WHEN EXISTS (SELECT 1 FROM topic_follower AS tf WHERE tf.topic_id = t.topic_id AND tf.followed_by=$1) THEN 1 ELSE 0 END AS is_following,
 		COUNT(DISTINCT tf.topic_id)
 	FROM
-		Topic t LEFT JOIN Topic_Category tc ON t.topic_id = tc.topic_id LEFT JOIN Category c ON c.category_id = tc.category_id LEFT JOIN KUser as u ON u.user_id = t.created_by LEFT JOIN Topic_Following tf ON tf.topic_id = t.topic_id
+		Topic t LEFT JOIN Topic_Category tc ON t.topic_id = tc.topic_id LEFT JOIN Category c ON c.category_id = tc.category_id LEFT JOIN KUser as u ON u.user_id = t.created_by LEFT JOIN Topic_Follower tf ON tf.topic_id = t.topic_id
 	GROUP BY t.topic_id, u.user_id
 	ORDER BY t.`+orderBy+` `+order+`
 	LIMIT $2 OFFSET $3
@@ -77,7 +77,7 @@ func (a *App) dbListTopics(limit int, offset int, orderBy string, order string) 
 		array_agg(c.name),
 		COUNT(DISTINCT tf.topic_id)
 	FROM
-		Topic t LEFT JOIN Topic_Category tc ON t.topic_id = tc.topic_id LEFT JOIN Category c ON c.category_id = tc.category_id LEFT JOIN KUser as u ON u.user_id = t.created_by LEFT JOIN Topic_Following tf ON tf.topic_id = t.topic_id
+		Topic t LEFT JOIN Topic_Category tc ON t.topic_id = tc.topic_id LEFT JOIN Category c ON c.category_id = tc.category_id LEFT JOIN KUser as u ON u.user_id = t.created_by LEFT JOIN Topic_Follower tf ON tf.topic_id = t.topic_id
 	GROUP BY t.topic_id, u.user_id
 	ORDER BY t.`+orderBy+` `+order+`
 	LIMIT $2 OFFSET $3
