@@ -37,6 +37,7 @@ func (a *App) dbListTopics(limit int, offset int, orderBy string, order string) 
 	defer rows.Close()
 	for rows.Next() {
 		t := Topic{}
+		t.Categories = []Category{}
 		var cids []sql.NullInt64
 		var cnames []sql.NullString
 		err := rows.Scan(&t.ID, &t.Title, &t.Details, &t.CreatedOn, &t.CreatedBy.ID, &t.CreatedBy.Username, &t.CreatedBy.FullName, pq.Array(&cids), pq.Array(&cnames))
