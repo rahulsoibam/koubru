@@ -2,6 +2,7 @@ package topics
 
 import (
 	"database/sql"
+	"fmt"
 
 	"github.com/lib/pq"
 )
@@ -112,6 +113,7 @@ func (a *App) dbListTopics(limit int, offset int, orderBy string, order string) 
 }
 
 func (a *App) dbAuthenticatedGetTopicByID(userID int64, topicID int64) (*Topic, error) {
+	fmt.Println("Inside authenticated")
 	t := Topic{}
 	t.Categories = []Category{}
 	row := a.DB.QueryRow(`
