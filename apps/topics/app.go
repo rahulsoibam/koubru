@@ -5,6 +5,6 @@ import "github.com/rahulsoibam/koubru-prod-api/middleware"
 
 // App for topics
 type App struct {
-	DB *sql.DB
-	m  *middleware.Middleware
+	DB         *sql.DB
+	Middleware *middleware.Middleware
 }

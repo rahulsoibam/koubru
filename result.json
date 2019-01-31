@@ -1,0 +1,44 @@
+[
+  {
+    "id": 1968815441694426135,
+    "title": "This is an example topic",
+    "details": "",
+    "category_ids": [
+      { "Int64": 1968816245004305434, "Valid": true },
+      { "Int64": 1968816245046248475, "Valid": true },
+      { "Int64": 1968816245046248476, "Valid": true }
+    ],
+    "category_names": [
+      { "String": "Politics", "Valid": true },
+      { "String": "Science", "Valid": true },
+      { "String": "Example", "Valid": true }
+    ]
+  },
+  {
+    "id": 1968815581742236696,
+    "title": "This is second example topic",
+    "details": "",
+    "category_ids": [
+      { "Int64": 1968816245004305434, "Valid": true },
+      { "Int64": 1968816245046248476, "Valid": true }
+    ],
+    "category_names": [
+      { "String": "Politics", "Valid": true },
+      { "String": "Example", "Valid": true }
+    ]
+  },
+  {
+    "id": 1968815633458005017,
+    "title": "This is third example topic",
+    "details": "",
+    "category_ids": [{ "Int64": 0, "Valid": false }],
+    "category_names": [{ "String": "", "Valid": false }]
+  },
+  {
+    "id": 1968895912235238429,
+    "title": "No category topic",
+    "details": "",
+    "category_ids": [{ "Int64": 0, "Valid": false }],
+    "category_names": [{ "String": "", "Valid": false }]
+  }
+]

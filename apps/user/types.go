@@ -26,3 +26,23 @@ type FollowUser struct {
 	PhotoURL   string    `json:"picture"`
 	FollowedOn time.Time `json:"followed_on"`
 }
+
+type Topic struct {
+	ID         int64      `json:"id"`
+	Title      string     `json:"title"`
+	Details    string     `json:"details"`
+	CreatedOn  time.Time  `json:"created_by"`
+	CreatedBy  TopicUser  `json:"created_by"`
+	Categories []Category `json:"categories"`
+}
+
+type TopicUser struct {
+	ID       int64  `json:"id"`
+	Username string `json:"username"`
+	FullName string `json:"full_name"`
+}
+
+type Category struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+}

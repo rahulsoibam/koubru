@@ -30,7 +30,7 @@ func (a *App) List(w http.ResponseWriter, r *http.Request) {
 		offset = (pg - 1) * limit
 	}
 
-	categories, err := a.dbListTopics(query, limit, offset)
+	categories, err := a.dbListCategories(query, limit, offset)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return

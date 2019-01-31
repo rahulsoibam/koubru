@@ -2,7 +2,7 @@ package categories
 
 import "database/sql"
 
-func (a *App) dbListTopics(query string, limit int, offset int) (*[]Category, error) {
+func (a *App) dbListCategories(query string, limit int, offset int) (*[]Category, error) {
 	categories := []Category{}
 	var rows *sql.Rows
 	var err error

@@ -3,6 +3,7 @@ package user
 import (
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi"
 	"github.com/lib/pq"
@@ -76,7 +77,55 @@ func (a *App) Opinions(w http.ResponseWriter, r *http.Request) {
 
 // Topics of authenticated user
 func (a *App) Topics(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("list topics of authenticated user"))
+	ctx := r.Context()
+	userID, ok := ctx.Value(middleware.UserCtxKeys(0)).(int64)
+	if !ok {
+		utils.RespondWithError(w, http.StatusUnauthorized, "You are unauthorized to view this request")
+	}
+	perPage := r.FormValue("per_page")
+	page := r.FormValue("page")
+	sort := r.FormValue("sort")
+	order := r.FormValue("order")
+
+	limit, err := strconv.Atoi(perPage)
+	if err != nil || limit <= 0 {
+		limit = 30
+	}
+
+	var offset = 0
+	pg, err := strconv.Atoi(page)
+	if err != nil || pg <= 1 {
+		offset = 0
+	} else {
+		offset = (pg - 1) * limit
+	}
+
+	var orderBy string
+	switch sort {
+	case "":
+	case "created":
+		orderBy = "created_on"
+	default:
+		utils.RespondWithError(w, http.StatusBadRequest, "sort value invalid")
+		return
+	}
+
+	switch order {
+	case "":
+		order = "desc"
+	case "asc":
+	case "desc":
+	default:
+		utils.RespondWithError(w, http.StatusBadRequest, "order value invalid")
+		return
+	}
+	topics, err := a.dbListTopicsByUserID(userID, limit, offset, orderBy, order)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	utils.RespondWithJSON(w, http.StatusOK, &topics)
 }
 
 // USERS /users/ endpoint functions
@@ -134,7 +183,56 @@ func (a *App) UsersFollowing(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) UsersTopics(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("List topics of a user"))
+	username := chi.URLParam(r, "username")
+	userID, err := a.validateUsernameAndGetID(username)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	perPage := r.FormValue("per_page")
+	page := r.FormValue("page")
+	sort := r.FormValue("sort")
+	order := r.FormValue("order")
+
+	limit, err := strconv.Atoi(perPage)
+	if err != nil || limit <= 0 {
+		limit = 30
+	}
+
+	var offset = 0
+	pg, err := strconv.Atoi(page)
+	if err != nil || pg <= 1 {
+		offset = 0
+	} else {
+		offset = (pg - 1) * limit
+	}
+
+	var orderBy string
+	switch sort {
+	case "":
+	case "created":
+		orderBy = "created_on"
+	default:
+		utils.RespondWithError(w, http.StatusBadRequest, "sort value invalid")
+		return
+	}
+
+	switch order {
+	case "":
+		order = "desc"
+	case "asc":
+	case "desc":
+	default:
+		utils.RespondWithError(w, http.StatusBadRequest, "order value invalid")
+		return
+	}
+	topics, err := a.dbListTopicsByUserID(userID, limit, offset, orderBy, order)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	utils.RespondWithJSON(w, http.StatusOK, &topics)
 }
 
 func (a *App) UsersOpinions(w http.ResponseWriter, r *http.Request) {
@@ -156,10 +254,10 @@ func (a *App) FollowUser(w http.ResponseWriter, r *http.Request) {
 			if e.Code == "23505" {
 				utils.RespondWithError(w, http.StatusBadRequest, "You are already following this user")
 				return
-			} else {
-				utils.RespondWithError(w, http.StatusInternalServerError, e.Detail)
-				return
 			}
+
+			utils.RespondWithError(w, http.StatusInternalServerError, e.Detail)
+			return
 		}
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
