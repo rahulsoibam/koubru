@@ -42,7 +42,7 @@ func (a *App) dbAuthenticatedListTopics(userID int64, limit int, offset int, ord
 		t.Categories = []Category{}
 		var cids []sql.NullInt64
 		var cnames []sql.NullString
-		err := rows.Scan(&t.ID, &t.Title, &t.Details, &t.CreatedOn, &t.CreatedBy.Username, &t.CreatedBy.Picture, &t.CreatedBy.FullName, pq.Array(&cids), pq.Array(&cnames), &t.IsFollowing, &t.Counts.Followers)
+		err := rows.Scan(&t.ID, &t.Title, &t.Details, &t.CreatedOn, &t.CreatedBy.Username, &t.CreatedBy.FullName, &t.CreatedBy.Picture, pq.Array(&cids), pq.Array(&cnames), &t.IsFollowing, &t.Counts.Followers)
 		if err != nil {
 			return nil, err
 		}
@@ -94,7 +94,7 @@ func (a *App) dbListTopics(limit int, offset int, orderBy string, order string) 
 		t.Categories = []Category{}
 		var cids []sql.NullInt64
 		var cnames []sql.NullString
-		err := rows.Scan(&t.ID, &t.Title, &t.Details, &t.CreatedOn, &t.CreatedBy.Username, &t.CreatedBy.Picture, &t.CreatedBy.FullName, pq.Array(&cids), pq.Array(&cnames), &t.Counts.Followers)
+		err := rows.Scan(&t.ID, &t.Title, &t.Details, &t.CreatedOn, &t.CreatedBy.Username, &t.CreatedBy.FullName, &t.CreatedBy.Picture, pq.Array(&cids), pq.Array(&cnames), &t.Counts.Followers)
 		if err != nil {
 			return nil, err
 		}
@@ -122,7 +122,7 @@ func (a *App) dbAuthenticatedGetTopicByID(userID int64, topicID int64) (*Topic, 
 		t.created_on,
 		u.username,
 		u.full_name,
-		u.photo_url
+		u.photo_url,
 		array_agg(c.category_id),
 		array_agg(c.name),
 		CASE WHEN EXISTS (SELECT 1 FROM topic_follower AS tf WHERE tf.topic_id = t.topic_id AND tf.followed_by=$1) THEN 1 ELSE 0 END AS is_following
@@ -167,10 +167,9 @@ func (a *App) dbGetTopicByID(topicID int64) (*Topic, error) {
 		t.created_on,
 		u.username,
 		u.full_name,
-		u.photo_url
+		u.photo_url,
 		array_agg(c.category_id),
 		array_agg(c.name),
-		COUNT(DISTINCT tf.topic_id)
 	FROM
 		Topic t INNER JOIN Topic_Category tc USING (topic_id) INNER JOIN Category c USING(category_id) INNER JOIN KUser as u ON t.created_by=u.user_id
 	WHERE t.topic_id=$1
