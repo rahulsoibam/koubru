@@ -23,6 +23,7 @@ func (a *App) Routes() chi.Router {
 
 		})
 		r.Group(func(r chi.Router) {
+			r.Use(a.Middleware.UserCtx)
 			r.Patch("/", a.Patch)
 			r.Delete("/", a.Delete)
 			r.Put("/follow", a.Follow)
