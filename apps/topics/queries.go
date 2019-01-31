@@ -127,12 +127,12 @@ func (a *App) dbAuthenticatedGetTopicByID(userID int64, topicID int64) (*Topic, 
 		u.photo_url,
 		array_agg(c.category_id),
 		array_agg(c.name),
-		CASE WHEN EXISTS (SELECT 1 FROM topic_follower AS tf WHERE tf.topic_id = t.topic_id AND tf.followed_by=$1) THEN 1 ELSE 0 END AS is_following
+		CASE WHEN EXISTS (SELECT 1 FROM topic_follower AS tf WHERE tf.topic_id = $1 AND tf.followed_by=$2) THEN 1 ELSE 0 END AS is_following
 	FROM
 		Topic t LEFT JOIN Topic_Category tc USING (topic_id) LEFT JOIN Category c USING(category_id) LEFT JOIN KUser as u ON t.created_by=u.user_id
 	WHERE t.topic_id=$1
 	GROUP BY t.topic_id, u.user_id
-	`, topicID)
+	`, topicID, userID)
 
 	var cids []sql.NullInt64
 	var cnames []sql.NullString

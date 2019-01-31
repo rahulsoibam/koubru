@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -58,12 +59,14 @@ func (m *Middleware) UserCtx(next http.Handler) http.Handler {
 // UserCtx to add user to request context
 func (m *Middleware) OptionalUserCtx(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println("Inside optional middleware")
 		ctx := r.Context()
 		var userID int64
 		var err error
 		authHeader := r.Header.Get("Authorization")
 		authToken, err := authutils.HeaderToTokenString(authHeader)
 		if err != nil {
+			fmt.Println(err)
 			if err == authutils.ErrNoHeader {
 				next.ServeHTTP(w, r)
 				return
