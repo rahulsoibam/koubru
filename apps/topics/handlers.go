@@ -144,7 +144,7 @@ func (a *App) Follow(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithError(w, http.StatusUnauthorized, "Invalid user. Please try authenticating again")
 		return
 	}
-	_, err := a.DB.Exec("INSERT INTO Topic_Follower (topic_id, user_id) VALUES ($1, $2)", id, followerID)
+	_, err := a.DB.Exec("INSERT INTO Topic_Follower (topic_id, followed_by) VALUES ($1, $2)", id, followerID)
 	if err != nil {
 		if e, ok := err.(*pq.Error); ok {
 			if e.Code == "23505" {
@@ -169,7 +169,7 @@ func (a *App) Unfollow(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithError(w, http.StatusUnauthorized, "Invalid user. Please try authticating again")
 		return
 	}
-	response, err := a.DB.Exec("DELETE FROM Topic_Follower WHERE topic_id=$1 AND user_id=$2", id, followerID)
+	response, err := a.DB.Exec("DELETE FROM Topic_Follower WHERE topic_id=$1 AND followed_by=$2", id, followerID)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
