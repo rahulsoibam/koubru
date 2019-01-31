@@ -15,6 +15,7 @@ func (a *App) Routes() chi.Router {
 	r.Post("/follow", a.BulkFollow)
 	r.Route("/{id}", func(r chi.Router) {
 		r.Get("/", a.Get)
+		r.Get("/followers", a.Followers)
 		r.Group(func(r chi.Router) {
 			r.Use(a.Middleware.UserCtx)
 			r.Put("/follow", a.Follow)

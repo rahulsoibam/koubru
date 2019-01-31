@@ -102,6 +102,10 @@ func (a *App) Follow(w http.ResponseWriter, r *http.Request) {
 	utils.RespondWithMessage(w, http.StatusOK, "Successfully followed category")
 }
 
+func (a *App) Followers(w http.ResponseWriter, r *http.Request) {
+
+}
+
 // Unfollow to unfollow a category
 func (a *App) Unfollow(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
