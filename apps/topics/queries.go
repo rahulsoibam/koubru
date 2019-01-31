@@ -198,7 +198,7 @@ func (a *App) dbCreateTopic(nt *NewTopic, userID int64) (*Topic, error) {
 		return nil, err
 	}
 	var newTopicID int64
-	err = tx.QueryRow("INSERT INTO Topic (title, created_by) VALUES ($1, $2) RETURNING topic_id", nt.Title, userID).Scan(newTopicID)
+	err = tx.QueryRow("INSERT INTO Topic (title, created_by) VALUES ($1, $2) RETURNING topic_id", nt.Title, userID).Scan(&newTopicID)
 	if err != nil {
 		tx.Rollback()
 		return nil, err
