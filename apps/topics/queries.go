@@ -200,6 +200,7 @@ func (a *App) dbCreateTopic(nt *NewTopic, userID int64) (*Topic, error) {
 	var newTopicID int64
 	err = tx.QueryRow("INSERT INTO Topic (title, created_by) VALUES ($1, $2) RETURNING topic_id", nt.Title, userID).Scan(&newTopicID)
 	if err != nil {
+		panic(err)
 		tx.Rollback()
 		return nil, err
 	}
@@ -207,6 +208,7 @@ func (a *App) dbCreateTopic(nt *NewTopic, userID int64) (*Topic, error) {
 	for i := range nt.Categories {
 		_, err = tx.Exec("INSERT INTO Topic_Category (topic_id, category_id) VALUES ($1, $2)", nt.Categories[i].ID)
 		if err != nil {
+			panic(err)
 			tx.Rollback()
 			return nil, err
 		}
@@ -214,14 +216,17 @@ func (a *App) dbCreateTopic(nt *NewTopic, userID int64) (*Topic, error) {
 	_, err = tx.Exec("INSERT INTO Topic_Follower (topic_id, followed_by) VALUES ($1, $2)", newTopicID, userID)
 	if err != nil {
 		tx.Rollback()
+		panic(err)
 		return nil, err
 	}
 	err = tx.Commit()
 	if err != nil {
+		panic(err)
 		return nil, err
 	}
 	topic, err := a.dbAuthenticatedGetTopicByID(userID, newTopicID)
 	if err != nil {
+		panic(err)
 		return nil, err
 	}
 	return topic, nil
