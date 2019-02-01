@@ -38,8 +38,12 @@ func (a *App) Delete(w http.ResponseWriter, r *http.Request) {
 // Followers to list followers to authenticated user
 func (a *App) Followers(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userID := ctx.Value(middleware.UserCtxKeys(0)).(int64)
-	followers, err := a.dbGetFollowersByID(userID)
+	userID, ok := ctx.Value(middleware.UserCtxKeys(0)).(int64)
+	if !ok {
+		utils.RespondWithError(w, http.StatusUnauthorized, "You are unauthorized to perfrom this action")
+		return
+	}
+	followers, err := a.dbAuthenticatedGetFollowersSelf(userID)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -148,14 +152,22 @@ func (a *App) UsersGet(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) UsersFollowers(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID, ok := ctx.Value(middleware.UserCtxKeys(0)).(int64)
 	username := chi.URLParam(r, "username")
-	userID, err := a.validateUsernameAndGetID(username)
+	quserID, err := a.validateUsernameAndGetID(username)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	followers, err := a.dbGetFollowersByID(userID)
+	var followers *[]FollowUser
+
+	if ok {
+		followers, err = a.dbAuthenticatedGetFollowers(userID, quserID)
+	} else {
+		followers, err = a.dbGetFollowers(quserID)
+	}
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return

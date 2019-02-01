@@ -20,11 +20,11 @@ type User struct {
 
 // FollowUser type stores the data pertaining to the follower and the following view
 type FollowUser struct {
-	ID         int64     `json:"id"`
-	Username   string    `json:"username"`
-	FullName   string    `json:"full_name"`
-	PhotoURL   string    `json:"picture"`
-	FollowedOn time.Time `json:"followed_on"`
+	Username    string    `json:"username"`
+	FullName    string    `json:"full_name"`
+	PhotoURL    string    `json:"picture"`
+	FollowedOn  time.Time `json:"followed_on"`
+	IsFollowing bool      `json:"is_following"`
 }
 
 type Topic struct {

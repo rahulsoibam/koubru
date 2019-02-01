@@ -40,7 +40,6 @@ func (a *App) dbGetFollowingByID(userID int64) (*[]FollowUser, error) {
 	fus := []FollowUser{}
 	rows, err := a.DB.Query(`
 	SELECT 
-		u.user_id, 
 		u.username, 
 		u.full_name, 
 		u.photo_url, 
@@ -59,7 +58,7 @@ func (a *App) dbGetFollowingByID(userID int64) (*[]FollowUser, error) {
 	defer rows.Close()
 	for rows.Next() {
 		var fu FollowUser
-		if err := rows.Scan(&fu.ID, &fu.Username, &fu.FullName, &fu.PhotoURL, &fu.FollowedOn); err != nil {
+		if err := rows.Scan(&fu.Username, &fu.FullName, &fu.PhotoURL, &fu.FollowedOn); err != nil {
 			return nil, err
 		}
 		fus = append(fus, fu)
@@ -67,31 +66,81 @@ func (a *App) dbGetFollowingByID(userID int64) (*[]FollowUser, error) {
 	return &fus, nil
 }
 
-func (a *App) dbGetFollowersByID(userID int64) (*[]FollowUser, error) {
-	fus := []FollowUser{}
+func (a *App) dbAuthenticatedGetFollowersSelf(userID int64) (*[]FollowUser, error) {
+	fs := []FollowUser{}
 	rows, err := a.DB.Query(`
-	SELECT 
-		u.user_id, u.username, u.full_name, u.photo_url, map.followed_on
-	FROM
-		KUser AS u INNER JOIN UserMap AS map ON u.user_id = map.follower_id
-	WHERE map.user_id = $1
+	select u.username, u.full_name, u.photo_url, map.followed_on, case when following.user_id is null then 0 else 1 end as is_following
+	from kuser u inner join usermap map on u.user_id = map.follower_id left join usermap following on following.user_id=map.follower_id AND following.follower_id=map.user_id
+	where map.user_id=$1
+	order by following.followed_on desc nulls last;
 	`, userID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return &fus, nil
+			return &fs, nil
 		}
 		return nil, err
 	}
 
 	defer rows.Close()
 	for rows.Next() {
-		var fu FollowUser
-		if err := rows.Scan(&fu.ID, &fu.Username, &fu.FullName, &fu.PhotoURL, &fu.FollowedOn); err != nil {
+		var f FollowUser
+		if err := rows.Scan(&f.Username, &f.FullName, &f.PhotoURL, &f.FollowedOn, &f.IsFollowing); err != nil {
 			return nil, err
 		}
-		fus = append(fus, fu)
+		fs = append(fs, f)
 	}
-	return &fus, nil
+	return &fs, nil
+}
+
+func (a *App) dbAuthenticatedGetFollowers(userID int64, quserID int64) (*[]FollowUser, error) {
+	fs := []FollowUser{}
+	rows, err := a.DB.Query(`
+	select u.username, u.full_name, u.photo_url, map.followed_on, case when following.user_id = $1 then 1 else 0 end as is_following
+    from kuser u inner join on u.user_id = map.follower_id usermap map full join usermap following on following.user_id=map.follower_id AND following.follower_id=map.user_id
+    where map.user_id = $2 
+    order by following.followed_on desc nulls last;
+	`, userID, quserID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return &fs, nil
+		}
+		return nil, err
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+		f := FollowUser{}
+		if err := rows.Scan(&f.Username, &f.FullName, &f.PhotoURL, &f.FollowedOn, &f.IsFollowing); err != nil {
+			return &fs, nil
+		}
+		return nil, err
+	}
+	return &fs, nil
+}
+
+func (a *App) dbGetFollowers(quserID int64) (*[]FollowUser, error) {
+	fs := []FollowUser{}
+	rows, err := a.DB.Query(`
+	select u.username, u.full_name, u.photo_url, map.followed_on
+	from usermap map inner join kuser u on u.user_id = map.follower_id
+	where map.user_id = $1
+	`, quserID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return &fs, nil
+		}
+		return nil, err
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+		f := FollowUser{}
+		if err := rows.Scan(&f.Username, &f.FullName, &f.PhotoURL, &f.FollowedOn); err != nil {
+			return &fs, nil
+		}
+		return nil, err
+	}
+	return &fs, nil
 }
 
 func (a *App) dbListTopicsByUserID(userID int64, limit int, offset int, orderBy string, order string) (*[]Topic, error) {
