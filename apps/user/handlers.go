@@ -142,6 +142,7 @@ func (a *App) UsersGet(w http.ResponseWriter, r *http.Request) {
 	userID, ok := ctx.Value(middleware.UserCtxKeys(0)).(int64)
 	quserID, err := a.validateUsernameAndGetID(username)
 	if err != nil {
+		panic(err)
 		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -153,6 +154,7 @@ func (a *App) UsersGet(w http.ResponseWriter, r *http.Request) {
 		user, err = a.dbGetUser(quserID)
 	}
 	if err != nil {
+		panic(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
