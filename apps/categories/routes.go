@@ -7,17 +7,28 @@ import (
 // Routes for categories
 func (a *App) Routes() chi.Router {
 	r := chi.NewRouter()
-	r.Get("/", a.List)
 	r.Group(func(r chi.Router) {
-		r.Use(a.Middleware.UserCtx)
-		r.Post("/", a.Create)
+		r.Use(a.Middleware.OptionalAuthorization)
+		r.Use(a.Middleware.Pagination)
+		r.Get("/", a.List)
 	})
-	r.Post("/follow", a.BulkFollow)
-	r.Route("/{id}", func(r chi.Router) {
-		r.Get("/", a.Get)
-		r.Get("/followers", a.Followers)
+	r.Group(func(r chi.Router) {
+		r.Use(a.Middleware.RequireAuthorization)
+		r.Post("/", a.Create)
+		r.Post("/follow", a.BulkFollow)
+	})
+	r.Route("/{category_id:[0-9]+}", func(r chi.Router) {
 		r.Group(func(r chi.Router) {
-			r.Use(a.Middleware.UserCtx)
+			r.Use(a.Middleware.OptionalAuthorization)
+			r.Get("/", a.Get)
+			r.Group(func(r chi.Router) {
+				r.Use(a.Middleware.Pagination)
+				r.Get("/topics", a.Topics)
+				r.Get("/followers", a.Followers)
+			})
+		})
+		r.Group(func(r chi.Router) {
+			r.Use(a.Middleware.RequireAuthorization)
 			r.Put("/follow", a.Follow)
 			r.Delete("/follow", a.Unfollow)
 		})

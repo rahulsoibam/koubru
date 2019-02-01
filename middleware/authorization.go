@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -13,15 +12,13 @@ import (
 )
 
 // UserCtxKeys stores key to use when accessing context values
-type UserCtxKeys int
+type AuthKeys string
 
-// Middleware struct for storing redis connection reference
 type Middleware struct {
 	AuthCache *redis.Client
 }
 
-// UserCtx to add user to request context
-func (m *Middleware) UserCtx(next http.Handler) http.Handler {
+func (m *Middleware) RequireAuthorization(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		var userID int64
@@ -47,8 +44,8 @@ func (m *Middleware) UserCtx(next http.Handler) http.Handler {
 		// Convert to integer
 		userID, _ = strconv.ParseInt(response, 10, 64)
 
-		ctx = context.WithValue(ctx, UserCtxKeys(0), userID)
-		ctx = context.WithValue(ctx, UserCtxKeys(1), authToken)
+		ctx = context.WithValue(ctx, AuthKeys("userID"), userID)
+		ctx = context.WithValue(ctx, AuthKeys("authToken"), authToken)
 		// ctx = context.WithValue(r.Context(), TokenKey, authToken)
 		// ctx = context.WithValue(r.Context(), "token", &authToken)
 
@@ -56,10 +53,8 @@ func (m *Middleware) UserCtx(next http.Handler) http.Handler {
 	})
 }
 
-// UserCtx to add user to request context
-func (m *Middleware) OptionalUserCtx(next http.Handler) http.Handler {
+func (m *Middleware) OptionalAuthorization(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("Inside optional middleware")
 		ctx := r.Context()
 		var userID int64
 		var err error
@@ -67,7 +62,8 @@ func (m *Middleware) OptionalUserCtx(next http.Handler) http.Handler {
 		authToken, err := authutils.HeaderToTokenString(authHeader)
 		if err != nil {
 			if err == authutils.ErrNoHeader {
-				next.ServeHTTP(w, r)
+				ctx = context.WithValue(ctx, AuthKeys("userID"), 0)
+				next.ServeHTTP(w, r.WithContext(ctx))
 				return
 			}
 			utils.RespondWithError(w, http.StatusUnauthorized, err.Error())
@@ -88,10 +84,8 @@ func (m *Middleware) OptionalUserCtx(next http.Handler) http.Handler {
 		// Convert to integer
 		userID, _ = strconv.ParseInt(response, 10, 64)
 
-		ctx = context.WithValue(ctx, UserCtxKeys(0), userID)
-		ctx = context.WithValue(ctx, UserCtxKeys(1), authToken)
-		// ctx = context.WithValue(r.Context(), TokenKey, authToken)
-		// ctx = context.WithValue(r.Context(), "token", &authToken)
+		ctx = context.WithValue(ctx, AuthKeys("userID"), userID)
+		ctx = context.WithValue(ctx, AuthKeys("authToken"), authToken)
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

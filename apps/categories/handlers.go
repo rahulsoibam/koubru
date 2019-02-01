@@ -3,34 +3,26 @@ package categories
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
 
 	"github.com/go-chi/chi"
 	"github.com/lib/pq"
 	"github.com/rahulsoibam/koubru-prod-api/middleware"
+	"github.com/rahulsoibam/koubru-prod-api/types"
 	"github.com/rahulsoibam/koubru-prod-api/utils"
 )
 
 // List all categories
 func (a *App) List(w http.ResponseWriter, r *http.Request) {
-	query := r.FormValue("q")
-	perPage := r.FormValue("per_page")
-	page := r.FormValue("page")
-
-	limit, err := strconv.Atoi(perPage)
-	if err != nil || limit <= 0 {
-		limit = 30
-	}
-
-	var offset = 0
-	pg, err := strconv.Atoi(page)
-	if err != nil || pg <= 1 {
-		offset = 0
+	ctx := r.Context()
+	userID, ok := ctx.Value(middleware.AuthKeys("UserID")).(int64)
+	query := ctx.Value(middleware.QueryKeys("q"))
+	categories := []types.Category{}
+	if ok {
+		categories, err := a.AListQuery(ctx, userID)
 	} else {
-		offset = (pg - 1) * limit
+		categories, err := a.ListQuery(ctx)
 	}
 
-	categories, err := a.dbListCategories(query, limit, offset)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -103,6 +95,10 @@ func (a *App) Follow(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) Followers(w http.ResponseWriter, r *http.Request) {
+
+}
+
+func (a *App) Topics(w http.ResponseWriter, r *http.Request) {
 
 }
 

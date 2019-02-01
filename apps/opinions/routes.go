@@ -9,7 +9,7 @@ func (a App) Routes() chi.Router {
 	r.Get("/", a.List)
 	r.Post("/", a.Create)
 	// with :id
-	r.Route("/{id}", func(r chi.Router) {
+	r.Route("/{opinion_id}", func(r chi.Router) {
 		r.Get("/", a.Get)
 		r.Delete("/", a.Delete)
 		r.Get("/followers", a.Followers)

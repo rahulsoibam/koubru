@@ -1,6 +1,7 @@
 package user
 
 import (
+	"database/sql"
 	"errors"
 	"log"
 	"net/http"
@@ -18,22 +19,16 @@ func (a *App) Get(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID := ctx.Value(middleware.UserCtxKeys(0)).(int64)
 	var err error
-	user, err := a.dbAuthenticatedGetUser(userID, userID)
+	user, err := a.GetUserDataUsingUserID(userID)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			utils.RespondWithError(w, http.StatusNotFound, "User not found")
+			return
+		}
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	utils.RespondWithJSON(w, http.StatusOK, &user)
-}
-
-// Patch details of authenticated user
-func (a *App) Patch(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("patching in testing mode. Get ready to send multipart-form data"))
-}
-
-// Delete or deactivate authenticated user
-func (a *App) Delete(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("need a definition of delete on our platform"))
 }
 
 // Followers to list followers to authenticated user
@@ -44,17 +39,11 @@ func (a *App) Followers(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithError(w, http.StatusUnauthorized, "You are unauthorized to perfrom this action")
 		return
 	}
-	followers, err := a.dbAuthenticatedGetFollowersSelf(userID)
+	followers, err := a.(userID)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-
-	// Construction of response
-	// result := struct {
-	// 	Followers *[]FollowUser `json:"followers"`
-	// }{Followers: followers}
-
 	utils.RespondWithJSON(w, http.StatusOK, &followers)
 }
 
@@ -169,7 +158,7 @@ func (a *App) UsersFollowers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var followers *[]FollowUser
+	followers := []FollowUser{}
 
 	if ok {
 		followers, err = a.dbAuthenticatedGetFollowers(userID, quserID)
