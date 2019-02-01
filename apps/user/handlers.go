@@ -61,7 +61,7 @@ func (a *App) Followers(w http.ResponseWriter, r *http.Request) {
 func (a *App) Following(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID := ctx.Value(middleware.UserCtxKeys(0)).(int64)
-	following, err := a.dbGetFollowingByID(userID)
+	following, err := a.dbAuthenticatedGetFollowing(userID)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return

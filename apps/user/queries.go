@@ -35,6 +35,36 @@ func (a *App) dbGetUserByID(userID int64) (*User, error) {
 	// TODO Add topic and opinion count when their tables are created
 	return &u, nil
 }
+func (a *App) dbAuthenticatedGetFollowing(userID int64) (*[]FollowUser, error) {
+	fus := []FollowUser{}
+	rows, err := a.DB.Query(`
+	SELECT 
+		u.username, 
+		u.full_name, 
+		u.photo_url, 
+		map.followed_on 
+	FROM
+		KUser AS u INNER JOIN UserMap AS map USING (user_id)
+	WHERE map.follower_id = $1
+	`, userID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return &fus, nil
+		}
+		return nil, err
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+		var fu FollowUser
+		fu.IsFollowing = true
+		if err := rows.Scan(&fu.Username, &fu.FullName, &fu.PhotoURL, &fu.FollowedOn); err != nil {
+			return nil, err
+		}
+		fus = append(fus, fu)
+	}
+	return &fus, nil
+}
 
 func (a *App) dbGetFollowingByID(userID int64) (*[]FollowUser, error) {
 	fus := []FollowUser{}
