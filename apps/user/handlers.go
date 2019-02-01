@@ -20,6 +20,7 @@ func (a *App) Get(w http.ResponseWriter, r *http.Request) {
 	var err error
 	user, err := a.dbAuthenticatedGetUserSelf(userID)
 	if err != nil {
+		panic(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
