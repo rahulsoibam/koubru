@@ -170,6 +170,10 @@ func (a *App) UsersFollowers(w http.ResponseWriter, r *http.Request) {
 	username := chi.URLParam(r, "username")
 	quserID, err := a.validateUsernameAndGetID(username)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			utils.RespondWithError(w, http.StatusNotFound, "User not found")
+			return
+		}
 		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}

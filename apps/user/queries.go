@@ -120,7 +120,8 @@ func (a *App) dbAuthenticatedGetFollowing(userID int64) (*[]FollowUser, error) {
 		u.username, 
 		u.full_name, 
 		u.photo_url, 
-		map.followed_on 
+		map.followed_on,
+		1
 	FROM
 		KUser AS u INNER JOIN UserMap AS map USING (user_id)
 	WHERE map.follower_id = $1
@@ -135,8 +136,7 @@ func (a *App) dbAuthenticatedGetFollowing(userID int64) (*[]FollowUser, error) {
 	defer rows.Close()
 	for rows.Next() {
 		var fu FollowUser
-		fu.IsFollowing = true
-		if err := rows.Scan(&fu.Username, &fu.FullName, &fu.PhotoURL, &fu.FollowedOn); err != nil {
+		if err := rows.Scan(&fu.Username, &fu.FullName, &fu.PhotoURL, &fu.FollowedOn, &fu.IsFollowing); err != nil {
 			return nil, err
 		}
 		fus = append(fus, fu)
