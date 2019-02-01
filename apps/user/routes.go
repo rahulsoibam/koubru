@@ -19,7 +19,7 @@ func (a *App) Routes() chi.Router {
 		r.Get("/opinions", a.Opinions)
 		r.Get("/topics", a.Topics)
 	})
-	r.Route("/{username:^@[A-Za-z0-9_.]{3,30}$}", func(r chi.Router) {
+	r.Route("/@{username:^[A-Za-z0-9_.]{3,30}$}", func(r chi.Router) {
 		r.Group(func(r chi.Router) {
 			r.Use(a.Middleware.OptionalUserCtx)
 			r.Get("/", a.UsersGet)
