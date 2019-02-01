@@ -45,7 +45,7 @@ func (a *App) dbAuthenticatedGetUserSelf(userID int64) (*User, error) {
 		return nil, err
 	}
 	// TODO Add topic and opinion count when their tables are created
-	err = a.DB.QueryRow("SELECT count * from Topics WHERE created_by=$1", quserID).Scan(u.Counts.Topics)
+	err = a.DB.QueryRow("SELECT count * from Topics WHERE created_by=$1", userID).Scan(u.Counts.Topics)
 	if err != nil {
 		return nil, err
 	}
