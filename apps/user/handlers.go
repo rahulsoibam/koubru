@@ -2,6 +2,7 @@ package user
 
 import (
 	"errors"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -144,7 +145,7 @@ func (a *App) UsersGet(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-
+	log.Println(quserID)
 	var user *User
 	if ok {
 		user, err = a.dbAuthenticatedGetUser(userID, quserID)
