@@ -17,7 +17,7 @@ func (a *App) Get(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID := ctx.Value(middleware.UserCtxKeys(0)).(int64)
 	var err error
-	user, err := a.dbGetUserByID(userID)
+	user, err := a.dbGetUser(userID)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -123,7 +123,7 @@ func (a *App) Topics(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithError(w, http.StatusBadRequest, "order value invalid")
 		return
 	}
-	topics, err := a.dbListTopicsByUserID(userID, limit, offset, orderBy, order)
+	topics, err := a.dbAuthenticatedListTopics(userID, userID, limit, offset, orderBy, order)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -137,13 +137,20 @@ func (a *App) Topics(w http.ResponseWriter, r *http.Request) {
 // UsersGet returns the details of a user
 func (a *App) UsersGet(w http.ResponseWriter, r *http.Request) {
 	username := chi.URLParam(r, "username")
-	userID, err := a.validateUsernameAndGetID(username)
+	ctx := r.Context()
+	userID, ok := ctx.Value(middleware.UserCtxKeys(0)).(int64)
+	quserID, err := a.validateUsernameAndGetID(username)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	user, err := a.dbGetUserByID(userID)
+	var user *User
+	if ok {
+		user, err = a.dbAuthenticatedGetUser(userID, quserID)
+	} else {
+		user, err = a.dbGetUser(userID)
+	}
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -195,8 +202,10 @@ func (a *App) UsersFollowing(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) UsersTopics(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	username := chi.URLParam(r, "username")
-	userID, err := a.validateUsernameAndGetID(username)
+	quserID, err := a.validateUsernameAndGetID(username)
+	userID, ok := ctx.Value(middleware.UserCtxKeys(0)).(int64)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
@@ -238,7 +247,13 @@ func (a *App) UsersTopics(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithError(w, http.StatusBadRequest, "order value invalid")
 		return
 	}
-	topics, err := a.dbListTopicsByUserID(userID, limit, offset, orderBy, order)
+
+	var topics *[]Topic
+	if ok {
+		topics, err = a.dbAuthenticatedListTopics(userID, quserID, limit, offset, orderBy, order)
+	} else {
+		topics, err = a.dbListTopics(quserID, limit, offset, orderBy, order)
+	}
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return

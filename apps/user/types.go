@@ -10,6 +10,7 @@ type User struct {
 	FullName     string `json:"full_name"`
 	PhotoURL     string `json:"picture"`
 	Bio          string `json:"bio,omitempty"`
+	IsFollowing  bool   `json:"is_following"`
 	Counts       struct {
 		Followers int64 `json:"followers"`
 		Following int64 `json:"following"`
@@ -28,18 +29,23 @@ type FollowUser struct {
 }
 
 type Topic struct {
-	ID         int64      `json:"id"`
-	Title      string     `json:"title"`
-	Details    string     `json:"details"`
-	CreatedOn  time.Time  `json:"created_on"`
-	CreatedBy  TopicUser  `json:"created_by"`
-	Categories []Category `json:"categories"`
+	ID          int64      `json:"id"`
+	Title       string     `json:"title"`
+	Details     string     `json:"details"`
+	CreatedOn   time.Time  `json:"created_on"`
+	CreatedBy   TopicUser  `json:"created_by"`
+	Categories  []Category `json:"categories"`
+	IsFollowing bool       `json:"is_following"`
+	Counts      struct {
+		Followers int64 `json:"followers"`
+		Opinions  int64 `json:"opinions"`
+	}
 }
 
 type TopicUser struct {
-	ID       int64  `json:"id"`
 	Username string `json:"username"`
 	FullName string `json:"full_name"`
+	Picture  string `json:"picture"`
 }
 
 type Category struct {
