@@ -26,10 +26,10 @@ func (a *App) dbAuthenticatedGetUser(userID int64, quserID int64) (*User, error)
 		email_verified, 
 		photo_url, 
 		bio,
-		CASE WHEN EXISTS (SELECT 1 FROM UserMap AS map WHERE map.user_id = user_id AND map.follower_id=$1) THEN 1 ELSE 0 END AS is_following 
+		CASE WHEN EXISTS (SELECT 1 FROM UserMap AS map WHERE map.user_id = $1 AND map.follower_id=$2) THEN 1 ELSE 0 END AS is_following 
 		FROM KUser 
-		WHERE user_id=$2
-	`, userID, quserID).Scan(&u.ID, &u.Username, &u.FullName, &u.EmailVerfied, &u.PhotoURL, &u.Bio, &u.IsFollowing)
+		WHERE user_id=$1
+	`, quserID, userID).Scan(&u.ID, &u.Username, &u.FullName, &u.EmailVerfied, &u.PhotoURL, &u.Bio, &u.IsFollowing)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func (a *App) dbAuthenticatedGetUser(userID int64, quserID int64) (*User, error)
 
 func (a *App) dbGetUser(userID int64) (*User, error) {
 	u := User{}
-	err := a.DB.QueryRow("SELECT user_id, username, full_name, email_verified, photo_url, bio FROM KUser WHERE user_id=$1", userID).Scan(&u.ID, &u.Username, &u.FullName, &u.EmailVerfied, &u.PhotoURL, &u.Bio)
+	err := a.DB.QueryRow("SELECT user_id, username, full_name, photo_url, bio FROM KUser WHERE user_id=$1", userID).Scan(&u.ID, &u.Username, &u.FullName, &u.PhotoURL, &u.Bio)
 	if err != nil {
 		return nil, err
 	}

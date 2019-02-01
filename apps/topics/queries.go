@@ -8,8 +8,6 @@ import (
 )
 
 func (a *App) dbAuthenticatedListTopics(userID int64, limit int, offset int, orderBy string, order string) (*[]Topic, error) {
-	var rows *sql.Rows
-
 	topics := []Topic{}
 
 	rows, err := a.DB.Query(`

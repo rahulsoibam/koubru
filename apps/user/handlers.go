@@ -17,7 +17,7 @@ func (a *App) Get(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID := ctx.Value(middleware.UserCtxKeys(0)).(int64)
 	var err error
-	user, err := a.dbGetUser(userID)
+	user, err := a.dbAuthenticatedGetUser(userID, userID)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
