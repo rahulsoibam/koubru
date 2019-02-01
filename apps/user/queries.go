@@ -80,7 +80,7 @@ func (a *App) dbAuthenticatedGetUser(userID int64, quserID int64) (*User, error)
 		return nil, err
 	}
 	// TODO Add topic and opinion count when their tables are created
-	err = a.DB.QueryRow("SELECT count * from Topics WHERE created_by=$1", quserID).Scan(&u.Counts.Topics)
+	err = a.DB.QueryRow("SELECT count (*) from Topic WHERE created_by=$1", quserID).Scan(&u.Counts.Topics)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +89,7 @@ func (a *App) dbAuthenticatedGetUser(userID int64, quserID int64) (*User, error)
 
 func (a *App) dbGetUser(userID int64) (*User, error) {
 	u := User{}
-	err := a.DB.QueryRow("SELECT user_id, username, full_name, photo_url, bio FROM KUser WHERE user_id=$1", userID).Scan(&u.ID, &u.Username, &u.FullName, &u.PhotoURL, &u.Bio)
+	err := a.DB.QueryRow("SELECT user_id, username, full_name, photo_url, bio, 0 FROM KUser WHERE user_id=$1", userID).Scan(&u.ID, &u.Username, &u.FullName, &u.PhotoURL, &u.Bio, &u.IsFollowing)
 	if err != nil {
 		return nil, err
 	}
@@ -106,6 +106,11 @@ func (a *App) dbGetUser(userID int64) (*User, error) {
 		return nil, err
 	}
 	// TODO Add topic and opinion count when their tables are created
+	err = a.DB.QueryRow("SELECT count (*) from Topic WHERE created_by=$1", userID).Scan(&u.Counts.Topics)
+	if err != nil {
+		return nil, err
+	}
+
 	return &u, nil
 }
 func (a *App) dbAuthenticatedGetFollowing(userID int64) (*[]FollowUser, error) {
