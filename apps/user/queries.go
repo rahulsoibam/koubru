@@ -45,6 +45,10 @@ func (a *App) dbAuthenticatedGetUser(userID int64, quserID int64) (*User, error)
 		return nil, err
 	}
 	// TODO Add topic and opinion count when their tables are created
+	err = a.DB.QueryRow("SELECT count * from Topics WHERE created_by=$1", quserID).Scan(u.Counts.Topics)
+	if err != nil {
+		return nil, err
+	}
 	return &u, nil
 }
 
@@ -157,16 +161,16 @@ func (a *App) dbAuthenticatedGetFollowersSelf(userID int64) (*[]FollowUser, erro
 }
 
 func (a *App) dbAuthenticatedGetFollowers(userID int64, quserID int64) (*[]FollowUser, error) {
-	fs := []FollowUser{}
+	fs := new([]FollowUser)
 	rows, err := a.DB.Query(`
-	select u.username, u.full_name, u.photo_url, map.followed_on, case when following.user_id = $1 then 1 else 0 end as is_following
+	select u.username, u.full_name, u.photo_url, map.followed_on, case when following.follower_id = $1 then 1 else 0 end as is_following
     from kuser u inner join usermap map on u.user_id = map.follower_id full join usermap following on following.user_id=map.follower_id AND following.follower_id=map.user_id
-    where map.user_id = $2 
+    where map.user_id = $2
     order by following.followed_on desc nulls last;
 	`, userID, quserID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return &fs, nil
+			return fs, nil
 		}
 		return nil, err
 	}
@@ -176,11 +180,11 @@ func (a *App) dbAuthenticatedGetFollowers(userID int64, quserID int64) (*[]Follo
 	for rows.Next() {
 		f := FollowUser{}
 		if err := rows.Scan(&f.Username, &f.FullName, &f.PhotoURL, &f.FollowedOn, &f.IsFollowing); err != nil {
-			return &fs, nil
+			return fs, nil
 		}
 		return nil, err
 	}
-	return &fs, nil
+	return fs, nil
 }
 
 func (a *App) dbGetFollowers(quserID int64) (*[]FollowUser, error) {
