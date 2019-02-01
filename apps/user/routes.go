@@ -22,7 +22,7 @@ func (a *App) Routes() chi.Router {
 	r.Route("/@{username:^[A-Za-z0-9_.]{3,30}$}", func(r chi.Router) {
 		r.Group(func(r chi.Router) {
 			r.Use(a.Middleware.OptionalUserCtx)
-			r.Get("/", a.UsersGet)                // ERROR
+			r.Get("/", a.UsersGet)                // DONE
 			r.Get("/followers", a.UsersFollowers) // ERROR
 			r.Get("/following", a.UsersFollowing) // NEED FIX is_followed NOT WORKING
 			r.Get("/topics", a.UsersTopics)       // DONE

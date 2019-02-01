@@ -159,7 +159,7 @@ func (a *App) dbAuthenticatedGetFollowers(userID int64, quserID int64) (*[]Follo
 	fs := []FollowUser{}
 	rows, err := a.DB.Query(`
 	select u.username, u.full_name, u.photo_url, map.followed_on, case when following.user_id = $1 then 1 else 0 end as is_following
-    from kuser u inner join on u.user_id = map.follower_id usermap map full join usermap following on following.user_id=map.follower_id AND following.follower_id=map.user_id
+    from kuser u inner join usersmap map on u.user_id = map.follower_id usermap map full join usermap following on following.user_id=map.follower_id AND following.follower_id=map.user_id
     where map.user_id = $2 
     order by following.followed_on desc nulls last;
 	`, userID, quserID)

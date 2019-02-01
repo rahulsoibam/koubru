@@ -66,7 +66,6 @@ func (m *Middleware) OptionalUserCtx(next http.Handler) http.Handler {
 		authHeader := r.Header.Get("Authorization")
 		authToken, err := authutils.HeaderToTokenString(authHeader)
 		if err != nil {
-			fmt.Println(err)
 			if err == authutils.ErrNoHeader {
 				next.ServeHTTP(w, r)
 				return
