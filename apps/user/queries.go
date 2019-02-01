@@ -2,6 +2,7 @@ package user
 
 import (
 	"database/sql"
+	"log"
 
 	"github.com/lib/pq"
 )
@@ -169,6 +170,7 @@ func (a *App) dbAuthenticatedGetFollowers(userID int64, quserID int64) (*[]Follo
 		}
 		return nil, err
 	}
+	log.Println(rows)
 
 	defer rows.Close()
 	for rows.Next() {
