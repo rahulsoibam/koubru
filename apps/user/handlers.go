@@ -149,7 +149,7 @@ func (a *App) UsersGet(w http.ResponseWriter, r *http.Request) {
 	if ok {
 		user, err = a.dbAuthenticatedGetUser(userID, quserID)
 	} else {
-		user, err = a.dbGetUser(userID)
+		user, err = a.dbGetUser(quserID)
 	}
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
