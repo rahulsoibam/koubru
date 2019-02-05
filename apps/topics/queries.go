@@ -17,7 +17,7 @@ func (a *App) AuthCreateQuery(userID int64, t types.NewTopic) (types.Topic, erro
 		return tres, err
 	}
 	var topicID int64
-	err = tx.QueryRow("INSERT INTO Topic (title, details, creator_by) VALUES ($1, $2, $3) RETURNING topic_id", t.Title, t.Details, userID).Scan(&topicID)
+	err = tx.QueryRow("INSERT INTO Topic (title, details, creator_id) VALUES ($1, $2, $3) RETURNING topic_id", t.Title, t.Details, userID).Scan(&topicID)
 	if err != nil {
 		tx.Rollback()
 		return tres, err
