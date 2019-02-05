@@ -102,6 +102,7 @@ func (a *App) AuthCreateQuery(userID int64, c types.NewCategory) (types.Category
 	}
 
 	// TODO GET CATEGORY PAGE
+	cres := types.Category{}
 	cres, err = a.AuthGetQuery(userID, categoryID)
 	if err != nil {
 		tx.Rollback()
@@ -123,7 +124,8 @@ func (a *App) AuthGetQuery(userID int64, categoryID int64) (types.Category, erro
         c.category_id,
         c.name,
         c.created_on,
-        u.username,
+		u.username,
+		u.full_name,
         u.picture,
 		CASE WHEN EXISTS (SELECT 1 from category_follower cf WHERE cf.category_id=c.category_id AND cf.follower_id=$1) THEN 1 ELSE 0 END AS is_following,
 		(select count(*) from topic_category where category_id=c.category_id) as topics_count,
@@ -153,7 +155,8 @@ func (a *App) GetQuery(categoryID int64) (types.Category, error) {
         c.category_id,
         c.name,
         c.created_on,
-        u.username,
+		u.username,
+		u.full_name,
 		u.picture,
 		0 as is_following,
 		(select count(*) from topic_category where category_id=c.category_id) as topics_count,

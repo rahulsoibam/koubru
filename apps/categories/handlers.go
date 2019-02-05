@@ -62,7 +62,9 @@ func (a *App) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cres, err := a.AuthCreateQuery(userID, c)
+	cres := types.Category{}
+
+	cres, err = a.AuthCreateQuery(userID, c)
 	if err != nil {
 		if e, ok := err.(*pq.Error); ok {
 			a.Log.Errorln(e, e.Detail, e.Code)
@@ -73,7 +75,7 @@ func (a *App) Create(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
-	utils.RespondWithJSON(w, http.StatusOK, &cres)
+	utils.RespondWithJSON(w, http.StatusOK, cres)
 }
 
 // Get details of a category
