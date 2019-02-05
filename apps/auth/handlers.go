@@ -13,18 +13,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/rahulsoibam/koubru-prod-api/errs"
+
 	"github.com/lib/pq"
 	"github.com/rahulsoibam/koubru-prod-api/middleware"
 
 	"github.com/rahulsoibam/koubru-prod-api/authutils"
 	"github.com/rahulsoibam/koubru-prod-api/authutils/googlejwt"
 	"github.com/rahulsoibam/koubru-prod-api/utils"
-)
-
-var (
-	errUserNotFound     = errors.New("User not found")
-	errNoPasswordSet    = errors.New("A password is not set for this account. Login using social account or create password")
-	errPasswordNotMatch = errors.New("Password does not match")
 )
 
 func (a *App) authenticate(userID int64, bearerToken string, userAgent string) (*Token, error) {
@@ -59,7 +55,8 @@ func (a *App) Login(w http.ResponseWriter, r *http.Request) {
 
 	err = json.NewDecoder(r.Body).Decode(&creds)
 	if err != nil {
-		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
+		a.Log.Infoln(err)
+		utils.RespondWithError(w, http.StatusBadRequest, err)
 		return
 	}
 	defer r.Body.Close()
@@ -67,7 +64,8 @@ func (a *App) Login(w http.ResponseWriter, r *http.Request) {
 	// Get user login type, out of email and username
 	loginType, err := creds.ValidateAndLoginType()
 	if err != nil {
-		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
+		a.Log.Errorln(err, creds)
+		utils.RespondWithError(w, http.StatusBadRequest, err)
 		return
 	}
 
@@ -80,10 +78,10 @@ func (a *App) Login(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch err {
 		case sql.ErrNoRows:
-			utils.RespondWithError(w, http.StatusNotFound, errUserNotFound.Error())
+			utils.RespondWithError(w, http.StatusNotFound, errUserNotFound)
 			return
 		default:
-			utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+			utils.RespondWithError(w, http.StatusInternalServerError, errUserNotFound)
 			return
 		}
 	}
@@ -93,10 +91,12 @@ func (a *App) Login(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch err {
 		case sql.ErrNoRows:
-			utils.RespondWithError(w, http.StatusBadRequest, errNoPasswordSet.Error())
+			a.Log.Infoln(errNoPasswordSet)
+			utils.RespondWithError(w, http.StatusBadRequest, errNoPasswordSet)
 			return
 		default:
-			utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+			a.Log.Errorln(err)
+			utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 			return
 		}
 	}
@@ -105,25 +105,28 @@ func (a *App) Login(w http.ResponseWriter, r *http.Request) {
 	var match bool
 	match, err = authutils.ComparePasswordAndHash(creds.Password, encodedHash)
 	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		a.Log.Errorln(err)
+		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
 	if !match {
-		utils.RespondWithError(w, http.StatusBadRequest, errPasswordNotMatch.Error())
+		utils.RespondWithError(w, http.StatusBadRequest, errPasswordNotMatch)
 		return
 	}
 
 	// Generate bearer token
 	bearerToken, err := authutils.GenerateSecureToken(256)
 	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		a.Log.Errorln(err)
+		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
 
 	// Authenticate and return access token
 	token, err := a.authenticate(userID, bearerToken, r.UserAgent())
 	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		a.Log.Errorln(err)
+		utils.RespondWithError(w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -137,46 +140,55 @@ func (a *App) Register(w http.ResponseWriter, r *http.Request) {
 	err = json.NewDecoder(r.Body).Decode(&nu)
 	defer r.Body.Close()
 	if err != nil {
-		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
+		a.Log.Infoln(err, nu)
+		utils.RespondWithError(w, http.StatusBadRequest, err)
 		return
 	}
 	if err := nu.Validate(); err != nil {
-		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
+		a.Log.Infoln(err, nu)
+		utils.RespondWithError(w, http.StatusBadRequest, err)
 		return
 	}
 
 	n := a.AuthCache.SIsMember("usernames", nu.Username)
 	if n.Val() {
-		utils.RespondWithError(w, http.StatusBadRequest, "Username "+nu.Username+" already exists. Please enter another username")
+		errUsernameAlreadyExist := errors.New("Username " + nu.Username + " already exists. Please enter another username")
+		a.Log.Infoln()
+		utils.RespondWithError(w, http.StatusBadRequest, errUsernameAlreadyExist)
 		return
 	}
 
 	n = a.AuthCache.SIsMember("emails", nu.Email)
 	if n.Val() {
-		utils.RespondWithError(w, http.StatusBadRequest, "Email "+nu.Email+" already exists. Please enter another email")
+		errEmailAlreadyExist := errors.New("Email " + nu.Email + " already exists. Please enter another email")
+		utils.RespondWithError(w, http.StatusBadRequest, errEmailAlreadyExist)
 		return
 	}
 
 	userID, err := a.dbRegisterUser(nu)
 	if err != nil {
 		if e, ok := err.(*pq.Error); ok {
-			utils.RespondWithError(w, http.StatusBadRequest, e.Detail)
+			a.Log.Infoln(e, e.Detail)
+			utils.RespondWithError(w, http.StatusBadRequest, errors.New(e.Detail))
 			return
 		}
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		a.Log.Errorln(err)
+		utils.RespondWithError(w, http.StatusInternalServerError, err)
 		return
 	}
 	// Generate password hash
 	encodedHash, err := authutils.GenerateFromPassword(nu.Password, a.Argon2Params)
 	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		a.Log.Errorln(err)
+		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
 
 	// Store password in separate database
 	err = a.dbStorePassword(userID, encodedHash)
 	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		a.Log.Errorln(err)
+		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
 
@@ -185,14 +197,16 @@ func (a *App) Register(w http.ResponseWriter, r *http.Request) {
 
 	bearerToken, err := authutils.GenerateSecureToken(256)
 	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		a.Log.Errorln(err)
+		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
 
 	// Store authentication details in data layers and return access token
 	token, err := a.authenticate(userID, bearerToken, r.UserAgent())
 	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		a.Log.Errorln(err)
+		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
 	utils.RespondWithJSON(w, http.StatusOK, &token)
@@ -210,11 +224,13 @@ func (a *App) Facebook(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("requesting facebook")
 	response, err := http.Get("https://graph.facebook.com/me?fields=id,name,picture.type(large),email&access_token=" + facebookAccessToken + "&appsecret_proof=" + appSecretProof)
 	if err != nil {
-		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
+		a.Log.Infoln(err)
+		utils.RespondWithError(w, http.StatusBadRequest, err)
 		return
 	}
 	if response.StatusCode != http.StatusOK {
-		utils.RespondWithError(w, http.StatusBadRequest, "Error fetching details from facebook. Check the token and try again")
+		a.Log.Infoln(response.StatusCode, response.Status)
+		utils.RespondWithError(w, http.StatusBadRequest, errors.New("Error fetching details from facebook. Check the token and try again"))
 		return
 	}
 
@@ -225,7 +241,8 @@ func (a *App) Facebook(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("decoding json")
 	err = json.NewDecoder(response.Body).Decode(&fu)
 	if err != nil {
-		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
+		a.Log.Infoln(err, fu)
+		utils.RespondWithError(w, http.StatusBadRequest, errs.BadRequest)
 		return
 	}
 	fmt.Println("done decoding json")
@@ -236,34 +253,39 @@ func (a *App) Facebook(w http.ResponseWriter, r *http.Request) {
 		case sql.ErrNoRows:
 			username, err := fu.GenerateUsername(a.AuthCache)
 			if err != nil {
-				utils.RespondWithError(w, http.StatusBadRequest, err.Error())
+				a.Log.Errorln(err)
+				utils.RespondWithError(w, http.StatusBadRequest, err)
 				return
 			}
 			userID, err = a.dbRegisterUserUsingFacebook(fu, username)
 			if err != nil {
 				if e, ok := err.(*pq.Error); ok {
-					utils.RespondWithError(w, http.StatusInternalServerError, e.Detail)
+					utils.RespondWithError(w, http.StatusInternalServerError, errors.New(e.Detail))
 					return
 				}
-				utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+
+				utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 				return
 			}
 			a.AuthCache.SAdd("usernames", username)
 		default:
-			utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+			a.Log.Errorln(err)
+			utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 			return
 		}
 	}
 
 	bearerToken, err := authutils.GenerateSecureToken(256)
 	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		a.Log.Errorln(err)
+		utils.RespondWithError(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	token, err := a.authenticate(userID, bearerToken, r.UserAgent())
 	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		a.Log.Errorln(err)
+		utils.RespondWithError(w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -280,12 +302,13 @@ func (a *App) Google(w http.ResponseWriter, r *http.Request) {
 		iosaud, andaud,
 	})
 	if err != nil {
-		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
+		utils.RespondWithError(w, http.StatusBadRequest, err)
 		return
 	}
 	cs, err := googlejwt.Decode(googleIDToken)
 	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		a.Log.Errorln(err)
+		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
 
@@ -295,32 +318,37 @@ func (a *App) Google(w http.ResponseWriter, r *http.Request) {
 		case sql.ErrNoRows:
 			username, err := cs.GenerateUsername(a.AuthCache)
 			if err != nil {
-				utils.RespondWithError(w, http.StatusBadRequest, err.Error())
+				utils.RespondWithError(w, http.StatusBadRequest, err)
 				return
 			}
 			userID, err = a.dbRegisterUserUsingGoogle(cs, username)
 			if err != nil {
 				if e, ok := err.(*pq.Error); ok {
-					utils.RespondWithError(w, http.StatusInternalServerError, e.Detail)
+					a.Log.Errorln(e)
+					utils.RespondWithError(w, http.StatusInternalServerError, errors.New(e.Detail))
 					return
 				}
-				utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+				a.Log.Errorln(err)
+				utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 				return
 			}
 			a.AuthCache.SAdd("usernames", username)
 		default:
-			utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+			a.Log.Errorln(err)
+			utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 			return
 		}
 	}
 	bearerToken, err := authutils.GenerateSecureToken(256)
 	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		a.Log.Errorln(err)
+		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
 	token, err := a.authenticate(userID, bearerToken, r.UserAgent())
 	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		a.Log.Errorln(err)
+		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
 	utils.RespondWithJSON(w, http.StatusOK, &token)
@@ -339,25 +367,28 @@ func (a *App) LinkFacebook(w http.ResponseWriter, r *http.Request) {
 // Logout user
 func (a *App) Logout(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userID := ctx.Value(middleware.UserCtxKeys(0)).(int64)
-	token := ctx.Value(middleware.UserCtxKeys(1)).(string)
+	userID := ctx.Value(middleware.AuthKeys("user_id")).(int64)
+	token := ctx.Value(middleware.AuthKeys("auth_token")).(string)
 
 	n := a.AuthCache.Del(token)
 	if n.Val() != 1 {
+		utils.RespondWithError(w, http.StatusBadRequest, errors.New("The session does not exist"))
 		return
 	}
 	res, err := a.AuthDB.Exec("DELETE FROM session WHERE token=$1 AND user_id=$2", token, userID)
 	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+
+		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
 	count, err := res.RowsAffected()
 	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		a.Log.Errorln(err)
+		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
 	if count == 0 {
-		utils.RespondWithError(w, http.StatusInternalServerError, "Session deleted")
+		utils.RespondWithError(w, http.StatusInternalServerError, errors.New("Session deleted"))
 		return
 	}
 
@@ -369,13 +400,15 @@ func (a *App) CheckEmail(w http.ResponseWriter, r *http.Request) {
 	email := r.FormValue("email")
 	email = strings.ToLower(email)
 	if err := utils.ValidateEmail(email); err != nil {
-		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
+		a.Log.Errorln(err)
+		utils.RespondWithError(w, http.StatusBadRequest, errs.BadRequest)
 		return
 	}
 
 	exists := a.AuthCache.SIsMember("emails", email)
 	if exists.Val() {
-		utils.RespondWithError(w, http.StatusBadRequest, "Email "+email+" is already used by another account.")
+		errEmailAlreadyExist := errors.New("Email is already used by another account.")
+		utils.RespondWithError(w, http.StatusBadRequest, errEmailAlreadyExist)
 		return
 	}
 	utils.RespondWithMessage(w, http.StatusOK, email+" is a valid email")
@@ -386,13 +419,14 @@ func (a *App) CheckUsername(w http.ResponseWriter, r *http.Request) {
 	username := r.FormValue("username")
 	username = strings.ToLower(username)
 	if err := utils.ValidateUsername(username); err != nil {
-		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
+		a.Log.Infoln(err)
+		utils.RespondWithError(w, http.StatusBadRequest, err)
 		return
 	}
 
 	exists := a.AuthCache.SIsMember("usernames", username)
 	if exists.Val() {
-		utils.RespondWithError(w, http.StatusBadRequest, "Username "+username+" is already used by another account.")
+		utils.RespondWithError(w, http.StatusBadRequest, errors.New("Username is already used by another account."))
 		return
 	}
 	utils.RespondWithMessage(w, http.StatusOK, username+" is a valid username")

@@ -3,16 +3,11 @@ package authutils
 import (
 	"crypto/subtle"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"strings"
 
+	"github.com/rahulsoibam/koubru-prod-api/errs"
 	"golang.org/x/crypto/argon2"
-)
-
-var (
-	errInvalidHash         = errors.New("the encoded hash is not in the correct format")
-	errIncompatibleVersion = errors.New("incompatible version of argon2")
 )
 
 // Params is the argon2 parameters
@@ -67,7 +62,7 @@ func ComparePasswordAndHash(password, encodedHash string) (match bool, err error
 func decodeHash(encodedHash string) (p *Params, salt, hash []byte, err error) {
 	vals := strings.Split(encodedHash, "$")
 	if len(vals) != 6 {
-		return nil, nil, nil, errInvalidHash
+		return nil, nil, nil, errs.InvalidHash
 	}
 
 	var version int
@@ -76,7 +71,7 @@ func decodeHash(encodedHash string) (p *Params, salt, hash []byte, err error) {
 		return nil, nil, nil, err
 	}
 	if version != argon2.Version {
-		return nil, nil, nil, errIncompatibleVersion
+		return nil, nil, nil, errs.Argon2IncompatibleVersion
 	}
 
 	p = &Params{}

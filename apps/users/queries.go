@@ -1,16 +1,25 @@
-package user
+package users
 
 import (
 	"database/sql"
 	"log"
 
 	"github.com/lib/pq"
-	"github.com/rahulsoibam/koubru-prod-api/types"
 )
 
-func (a *App) AuthGetQuery(userID int64) (types.User, error) {
-	u := types.User{}
-	sqlQuery := `
+func (a *App) dbGetUserIDUsingUsername(username string) (int64, error) {
+	var userID int64
+	var err error
+	err = a.DB.QueryRow("SELECT user_id from KUser WHERE username = $1", username).Scan(&userID)
+	if err != nil {
+		return 0, err
+	}
+	return userID, nil
+}
+
+func (a *App) dbAuthenticatedGetUser(userID int64, quserID int64) (*User, error) {
+	u := User{}
+	err := a.DB.QueryRow(`
 	SELECT 
 		user_id, 
 		username, 
@@ -18,12 +27,10 @@ func (a *App) AuthGetQuery(userID int64) (types.User, error) {
 		email_verified, 
 		photo_url, 
 		bio,
-		1 as is_self,
-		0 as is_following
-	FROM KUser 
-	WHERE user_id=$1
-	`
-	err := a.DB.QueryRow(sqlQuery, userID).Scan(&u.ID, &u.Username, &u.FullName, &u.EmailVerfied, &u.PhotoURL, &u.Bio, &u.IsSelf, &u.IsFollowing)
+		CASE WHEN EXISTS (SELECT 1 FROM UserMap AS map WHERE map.user_id = $1 AND map.follower_id=$2) THEN 1 ELSE 0 END AS is_following 
+		FROM KUser 
+		WHERE user_id=$1
+	`, quserID, userID).Scan(&u.ID, &u.Username, &u.FullName, &u.EmailVerfied, &u.PhotoURL, &u.Bio, &u.IsFollowing)
 	if err != nil {
 		return nil, err
 	}
@@ -38,16 +45,41 @@ func (a *App) AuthGetQuery(userID int64) (types.User, error) {
 		return nil, err
 	}
 	// TODO Add topic and opinion count when their tables are created
-	err = a.DB.QueryRow("SELECT count(*) from Topics WHERE created_by=$1", userID).Scan(u.Counts.Topics)
+	err = a.DB.QueryRow("SELECT count * from Topics WHERE created_by=$1", quserID).Scan(u.Counts.Topics)
 	if err != nil {
 		return nil, err
 	}
+	return &u, nil
+}
 
-	err = a.DB.QueryRow("SELECT COUNT(*) FROM Opinion WHERE created_by=$1", userID).Scan(u.Counts.Opinions)
+func (a *App) GetUserByID(userID int64, urlUID int64) (User, error) {
+	u := User{}
+	err := a.DB.QueryRow("SELECT username, full_name, photo_url, bio FROM KUser WHERE user_id=$1", userID).Scan(&u.ID, &u.Username, &u.FullName, &u.PhotoURL, &u.Bio)
+	if err != nil {
+		return u, err
+	}
+
+	if urlID != 0 {
+		err = db.QueryRow("SELECT EXISTS ")
+	}
+
+	err = a.DB.QueryRow(`
+	SELECT 
+		count(*) FILTER (WHERE user_id=$1) as followers,
+		count(*) FILTER (WHERE follower_id=$1) as following
+	FROM UserMap
+	`, userID).Scan(&u.Counts.Followers, &u.Counts.Following)
+	if err != nil {
+		return u, err
+	}
+	// TODO Add topic and opinion count when their tables are created
+	err = a.DB.QueryRow("SELECT COUNT(*) FROM Topic WHERE created_by=$1", userID).Scan(u.Counts.Topics)
+	if err != nil {
+		return u, err
+	}
 
 	return u, nil
 }
-
 func (a *App) dbAuthenticatedGetFollowing(userID int64) (*[]FollowUser, error) {
 	fus := []FollowUser{}
 	rows, err := a.DB.Query(`
@@ -111,36 +143,13 @@ func (a *App) dbGetFollowingByID(userID int64) (*[]FollowUser, error) {
 	return &fus, nil
 }
 
-func (a *App) AuthFollowersQuery(userID int64) ([]types.User_, error) {
-	fs := []types.User_{}
-	sqlQuery := `
-	SELECT
-		u.username,
-		u.full_name,
-		u.photo_url,
-		CASE WHEN (user_id= $1) THEN 1 ELSE 0 END AS is_self
-		CASE WHEN EXISTS (SELECT 1 FROM Usermap m where m.user_id=u.user_id and m.follower_id=$1)
-	from kuser u inner join usermap map on u.user_id=map.follower_id
-	group by is_self desc, is_following des
-	
-	`
-
-	`
-	SELECT
-		u.username,
-		u.full_name,
-		
-
-	`
-
-
-
-
+func (a *App) dbAuthenticatedGetFollowersSelf(userID int64) (*[]FollowUser, error) {
+	fs := []FollowUser{}
 	rows, err := a.DB.Query(`
-	// select u.username, u.full_name, u.photo_url, map.followed_on, case when following.user_id is null then 0 else 1 end as is_following
-	// from kuser u inner join usermap map on u.user_id = map.follower_id left join usermap following on following.user_id=map.follower_id AND following.follower_id=map.user_id
-	// where map.user_id=$1
-	// order by following.followed_on desc nulls last;
+	select u.username, u.full_name, u.photo_url, map.followed_on, case when following.user_id is null then 0 else 1 end as is_following
+	from kuser u inner join usermap map on u.user_id = map.follower_id left join usermap following on following.user_id=map.follower_id AND following.follower_id=map.user_id
+	where map.user_id=$1
+	order by following.followed_on desc nulls last;
 	`, userID)
 	if err != nil {
 		if err == sql.ErrNoRows {

@@ -33,6 +33,7 @@ import (
 	"github.com/rahulsoibam/koubru-prod-api/apps/search"
 	"github.com/rahulsoibam/koubru-prod-api/apps/topics"
 	"github.com/rahulsoibam/koubru-prod-api/apps/user"
+	"github.com/rahulsoibam/koubru-prod-api/apps/users"
 
 	_ "github.com/joho/godotenv/autoload"
 	_ "github.com/lib/pq"
@@ -49,12 +50,14 @@ var (
 	sendgridClient   *sendgrid.Client
 	argon2Params     *authutils.Params
 	koubruMiddleware *koubrumiddleware.Middleware
+	logger           *logger.Logger
 )
 
 // MaxUploadSize is the max upload size of videos (including accompanying form data) in bytes
 const MaxUploadSize = 200 << 20
 
 func main() {
+	initializeLogger()
 	initializeDB()
 	initializeAuthDB()
 	initializeAuthCache()
@@ -81,6 +84,7 @@ func main() {
 		Middleware: koubruMiddleware,
 		DB:         db,
 		AuthDB:     authDB,
+		Logger:     logger,
 		// SendgridClient: sendgridClient,
 		Argon2Params: argon2Params,
 	}
@@ -90,24 +94,28 @@ func main() {
 		DB:         db,
 		Cache:      cache,
 		Middleware: koubruMiddleware,
+		Log:        logger,
 	}
 	r.Mount("/user", ua.Routes())
 
-	// usa := users.App{
-	// 	DB:         db,
-	// 	Cache:      cache,
-	// 	Middleware: koubruMiddleware,
-	// }
-	// r.Mount("/users", usa.Routes())
+	usa := users.App{
+		DB:         db,
+		Cache:      cache,
+		Middleware: koubruMiddleware,
+		Log:        logger,
+	}
+	r.Mount("/users", usa.Routes())
 
 	ca := categories.App{
 		DB:         db,
 		Middleware: koubruMiddleware,
+		Log:        logger,
 	}
 
 	ta := topics.App{
 		DB:         db,
 		Middleware: koubruMiddleware,
+		Log:        logger,
 	}
 	r.Mount("/topics", ta.Routes())
 
@@ -121,6 +129,10 @@ func main() {
 
 	log.Fatal(http.ListenAndServe(os.Getenv("API_PORT"), r))
 
+}
+
+func initializeLogger() {
+	logger = logger.NewLogger(os.Stderr, os.Stdout, os.Stdout, os.Stderr)
 }
 
 // Initialize sets up the database connection, s3 session and routes for the app

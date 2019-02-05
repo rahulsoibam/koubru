@@ -2,236 +2,236 @@ package topics
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 
-	"github.com/lib/pq"
+	"github.com/rahulsoibam/koubru-prod-api/types"
 )
 
-func (a *App) dbAuthenticatedListTopics(userID int64, limit int, offset int, orderBy string, order string) (*[]Topic, error) {
-	topics := []Topic{}
-
-	rows, err := a.DB.Query(`
-	SELECT 
-		t.topic_id,
-		t.title,
-		t.details,
-		t.created_on,
-		u.username,
-		u.full_name,
-		u.photo_url,
-		array_agg(c.category_id),
-		array_agg(c.name),
-		CASE WHEN EXISTS (SELECT 1 FROM topic_follower AS tf WHERE tf.topic_id = t.topic_id AND tf.followed_by=$1) THEN 1 ELSE 0 END AS is_following,
-		COUNT(DISTINCT tf.topic_id)
-	FROM
-		Topic t LEFT JOIN Topic_Category tc ON t.topic_id = tc.topic_id LEFT JOIN Category c ON c.category_id = tc.category_id LEFT JOIN KUser as u ON u.user_id = t.created_by LEFT JOIN Topic_Follower tf ON tf.topic_id = t.topic_id
-	GROUP BY t.topic_id, u.user_id
-	ORDER BY t.`+orderBy+` `+order+`
-	LIMIT $2 OFFSET $3
-	`, userID, limit, offset)
-	if err == sql.ErrNoRows {
-		return &topics, nil
-	} else if err != nil {
-		return nil, err
-	}
-
-	defer rows.Close()
-	for rows.Next() {
-		t := Topic{}
-		t.Categories = []Category{}
-		var cids []sql.NullInt64
-		var cnames []sql.NullString
-		err := rows.Scan(&t.ID, &t.Title, &t.Details, &t.CreatedOn, &t.CreatedBy.Username, &t.CreatedBy.FullName, &t.CreatedBy.Picture, pq.Array(&cids), pq.Array(&cnames), &t.IsFollowing, &t.Counts.Followers)
-		if err != nil {
-			return nil, err
-		}
-		for i := range cids {
-			if cids[i].Valid && cnames[i].Valid {
-				var c Category
-				c.ID = cids[i].Int64
-				c.Name = cnames[i].String
-				t.Categories = append(t.Categories, c)
-			}
-		}
-		topics = append(topics, t)
-	}
-	return &topics, nil
-}
-
-func (a *App) dbListTopics(limit int, offset int, orderBy string, order string) (*[]Topic, error) {
-	var rows *sql.Rows
-
-	topics := []Topic{}
-
-	rows, err := a.DB.Query(`
-	SELECT 
-		t.topic_id,
-		t.title,
-		t.details,
-		t.created_on,
-		u.username,
-		u.full_name,
-		u.photo_url,
-		array_agg(c.category_id),
-		array_agg(c.name),
-		COUNT(DISTINCT tf.topic_id)
-	FROM
-		Topic t LEFT JOIN Topic_Category tc ON t.topic_id = tc.topic_id LEFT JOIN Category c ON c.category_id = tc.category_id LEFT JOIN KUser as u ON u.user_id = t.created_by LEFT JOIN Topic_Follower tf ON tf.topic_id = t.topic_id
-	GROUP BY t.topic_id, u.user_id
-	ORDER BY t.`+orderBy+` `+order+`
-	LIMIT $1 OFFSET $2
-	`, limit, offset)
-	if err == sql.ErrNoRows {
-		return &topics, nil
-	} else if err != nil {
-		return nil, err
-	}
-
-	defer rows.Close()
-	for rows.Next() {
-		t := Topic{}
-		t.Categories = []Category{}
-		var cids []sql.NullInt64
-		var cnames []sql.NullString
-		err := rows.Scan(&t.ID, &t.Title, &t.Details, &t.CreatedOn, &t.CreatedBy.Username, &t.CreatedBy.FullName, &t.CreatedBy.Picture, pq.Array(&cids), pq.Array(&cnames), &t.Counts.Followers)
-		if err != nil {
-			return nil, err
-		}
-		for i := range cids {
-			if cids[i].Valid && cnames[i].Valid {
-				var c Category
-				c.ID = cids[i].Int64
-				c.Name = cnames[i].String
-				t.Categories = append(t.Categories, c)
-			}
-		}
-		topics = append(topics, t)
-	}
-	return &topics, nil
-}
-
-func (a *App) dbAuthenticatedGetTopicByID(userID int64, topicID int64) (*Topic, error) {
-	fmt.Println("Inside authenticated")
-	t := Topic{}
-	t.Categories = []Category{}
-	row := a.DB.QueryRow(`
-	SELECT
-		t.topic_id,
-		t.title,
-		t.details,
-		t.created_on,
-		u.username,
-		u.full_name,
-		u.photo_url,
-		array_agg(c.category_id),
-		array_agg(c.name),
-		CASE WHEN EXISTS (SELECT 1 FROM topic_follower AS tf WHERE tf.topic_id = t.topic_id AND tf.followed_by=$2) THEN 1 ELSE 0 END AS is_following
-	FROM
-		Topic t LEFT JOIN Topic_Category tc USING (topic_id) LEFT JOIN Category c USING(category_id) LEFT JOIN KUser as u ON t.created_by=u.user_id
-	WHERE t.topic_id=$1
-	GROUP BY t.topic_id, u.user_id
-	`, topicID, userID)
-
-	var cids []sql.NullInt64
-	var cnames []sql.NullString
-
-	err := row.Scan(&t.ID, &t.Title, &t.Details, &t.CreatedOn, &t.CreatedBy.Username, &t.CreatedBy.FullName, &t.CreatedBy.Picture, pq.Array(&cids), pq.Array(&cnames), &t.IsFollowing)
-	if err != nil {
-		return nil, err
-	}
-
-	for i := range cids {
-		if cids[i].Valid && cnames[i].Valid {
-			var c Category
-			c.ID = cids[i].Int64
-			c.Name = cnames[i].String
-			t.Categories = append(t.Categories, c)
-		}
-	}
-
-	err = a.DB.QueryRow("SELECT COUNT(*) FROM Topic_Follower WHERE topic_id=$1", topicID).Scan(&t.Counts.Followers)
-	if err != nil {
-		return nil, err
-	}
-
-	return &t, nil
-}
-func (a *App) dbGetTopicByID(topicID int64) (*Topic, error) {
-	t := Topic{}
-	t.Categories = []Category{}
-	row := a.DB.QueryRow(`
-	SELECT
-		t.topic_id,
-		t.title,
-		t.details,
-		t.created_on,
-		u.username,
-		u.full_name,
-		u.photo_url,
-		array_agg(c.category_id),
-		array_agg(c.name)
-	FROM
-		Topic t LEFT JOIN Topic_Category tc USING (topic_id) LEFT JOIN Category c USING(category_id) LEFT JOIN KUser as u ON t.created_by=u.user_id
-	WHERE t.topic_id=$1
-	GROUP BY t.topic_id, u.user_id
-	`, topicID)
-
-	var cids []sql.NullInt64
-	var cnames []sql.NullString
-
-	err := row.Scan(&t.ID, &t.Title, &t.Details, &t.CreatedOn, &t.CreatedBy.Username, &t.CreatedBy.FullName, &t.CreatedBy.Picture, pq.Array(&cids), pq.Array(&cnames))
-	if err != nil {
-		return nil, err
-	}
-
-	for i := range cids {
-		if cids[i].Valid && cnames[i].Valid {
-			var c Category
-			c.ID = cids[i].Int64
-			c.Name = cnames[i].String
-			t.Categories = append(t.Categories, c)
-		}
-	}
-
-	err = a.DB.QueryRow("SELECT COUNT(*) FROM Topic_Follower WHERE topic_id=$1", topicID).Scan(&t.Counts.Followers)
-	if err != nil {
-		return nil, err
-	}
-
-	return &t, nil
-}
-func (a *App) dbCreateTopic(nt *NewTopic, userID int64) (*Topic, error) {
+func (a *App) AuthCreateQuery(userID int64, t types.NewTopic) (types.Topic, error) {
+	tres := types.Topic{}
 	tx, err := a.DB.Begin()
 	if err != nil {
-		return nil, err
+		return tres, err
 	}
-	var newTopicID int64
-	err = tx.QueryRow("INSERT INTO Topic (title, created_by) VALUES ($1, $2) RETURNING topic_id", nt.Title, userID).Scan(&newTopicID)
+	var topicID int64
+	err = tx.QueryRow("INSERT INTO Topic (title, details, created_by) VALUES ($1, $2, $3) RETURNING topic_id", t.Title, t.Details, userID).Scan(&topicID)
 	if err != nil {
 		tx.Rollback()
-		return nil, err
+		return tres, err
 	}
 
 	for i := 0; i < 3; i++ {
-		fmt.Println(nt.Categories[i])
-		_, err = tx.Exec("INSERT INTO Topic_Category (topic_id, category_id) VALUES ($1, $2)", newTopicID, nt.Categories[i].ID)
+		fmt.Println(t.Categories[i])
+		_, err = tx.Exec("INSERT INTO Topic_Category (topic_id, category_id) VALUES ($1, $2)", topicID, t.Categories[i])
 		if err != nil {
 			tx.Rollback()
-			return nil, err
+			return tres, err
 		}
 	}
-	_, err = tx.Exec("INSERT INTO Topic_Follower (topic_id, followed_by) VALUES ($1, $2)", newTopicID, userID)
+	_, err = tx.Exec("INSERT INTO Topic_Follower (topic_id, followed_by) VALUES ($1, $2)", topicID, userID)
 	if err != nil {
 		tx.Rollback()
-		return nil, err
+		return tres, err
 	}
 	err = tx.Commit()
 	if err != nil {
-		return nil, err
+		return tres, err
 	}
-	topic, err := a.dbAuthenticatedGetTopicByID(userID, newTopicID)
+
+	tres, err = a.AuthGetQuery(userID, topicID)
 	if err != nil {
-		return nil, err
+		return tres, err
 	}
-	return topic, nil
+
+	// TODO return topic page
+	return tres, nil
+}
+
+func (a *App) AuthGetQuery(userID int64, topicID int64) (types.Topic, error) {
+	t := types.Topic{}
+	sqlQuery := `
+	SELECT
+        t.topic_id,
+        t.title,
+        t.details,
+        t.created_on,
+        u.username,
+        u.full_name,
+        u.photo_url,
+        coalesce(json_agg(json_build_object('id',c.category_id,'name',c.name)) filter (where c.category_id is not null or c.name is not null), '[]'::json),
+        case when exists (select 1 from topic_follower where topic_id=t.topic_id and followed_by=$1) then 1 else 0 end as is_following
+    FROM topic t inner join kuser u on t.created_by=u.user_id left join topic_category tc on t.topic_id = tc.topic_id
+    left join category c on c.category_id=tc.category_id
+    where t.topic_id=$2
+    group by t.topic_id, u.user_id
+	`
+
+	err := a.DB.QueryRow(sqlQuery, userID, topicID).Scan(&t.ID, &t.Title, &t.Details, &t.CreatedOn, &t.CreatedBy.Username, &t.CreatedBy.FullName, &t.CreatedBy.Picture, (*[]byte)(&t.Categories), &t.IsFollowing)
+	if err != nil {
+		// check for sql.ErrNoRows and return 404 if that is the case
+		return t, err
+	}
+
+	err = a.DB.QueryRow(`
+	SELECT COUNT(*)
+	FROM topic_follower tf
+	WHERE tf.topic_id=$1
+	`, topicID).Scan(&t.Counts.Followers)
+	if err != nil {
+		return t, err
+	}
+
+	err = a.DB.QueryRow(`
+	SELECT COUNT(*)
+	FROM Opinion o
+	WHERE o.topic_id=$1
+	`, topicID).Scan(&t.Counts.Opinions)
+	if err != nil {
+		return t, err
+	}
+
+	return t, nil
+}
+
+func (a *App) GetQuery(topicID int64) (types.Topic, error) {
+	t := types.Topic{}
+	sqlQuery := `
+	SELECT
+        t.topic_id,
+        t.title,
+        t.details,
+        t.created_on,
+        u.username,
+        u.full_name,
+        u.photo_url,
+		coalesce(json_agg(json_build_object('id',c.category_id,'name',c.name)) filter (where c.category_id is not null or c.name is not null), '[]'::json),
+		0 as is_following
+    FROM topic t inner join kuser u on t.created_by=u.user_id left join topic_category tc on t.topic_id = tc.topic_id
+    left join category c on c.category_id=tc.category_id
+    where t.topic_id=$1
+    group by t.topic_id, u.user_id
+	`
+
+	err := a.DB.QueryRow(sqlQuery, topicID).Scan(&t.ID, &t.Title, &t.Details, &t.CreatedOn, &t.CreatedBy.Username, &t.CreatedBy.FullName, &t.CreatedBy.Picture, (*[]byte)(&t.Categories), &t.IsFollowing)
+	if t.Categories == nil {
+		t.Categories = json.RawMessage("[]")
+	}
+	if err != nil {
+		// check for sql.ErrNoRows and return 404 if that is the case
+		return t, err
+	}
+
+	err = a.DB.QueryRow(`
+	SELECT COUNT(*)
+	FROM topic_follower tf
+	WHERE tf.topic_id=$1
+	`, topicID).Scan(&t.Counts.Followers)
+	if err != nil {
+		return t, err
+	}
+
+	err = a.DB.QueryRow(`
+	SELECT COUNT(*)
+	FROM Opinion o
+	WHERE o.topic_id=$1
+	`, topicID).Scan(&t.Counts.Opinions)
+	if err != nil {
+		return t, err
+	}
+
+	return t, nil
+}
+
+func (a *App) AuthFollowersQuery(userID int64, topicID int64) ([]types.User_, error) {
+	fs := []types.User_{}
+
+	sqlQuery := `
+	SELECT
+		u.username,
+		u.full_name,
+		u.photo_url,
+		CASE WHEN tf.followed_by=$1 THEN 1 ELSE 0 END AS is_self,
+		CASE WHEN EXISTS (SELECT 1 FROM Usermap map WHERE map.user_id=u.user_id AND map.follower_id=$1) THEN 1 ELSE 0 END AS is_following
+	FROM
+		KUser u INNER JOIN Topic_Follower tf ON u.user_id=tf.followed_by
+	WHERE tf.topic_id=$2
+	ORDER BY is_self desc, is_following desc
+	`
+
+	rows, err := a.DB.Query(sqlQuery, userID, topicID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return fs, nil
+		}
+		return fs, err
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+		f := types.User_{}
+		err := rows.Scan(&f.Username, &f.FullName, &f.Picture, &f.IsSelf, &f.IsFollowing)
+		if err != nil {
+			return fs, nil
+		}
+		fs = append(fs, f)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return fs, err
+	}
+
+	return fs, nil
+}
+
+func (a *App) FollowersQuery(topicID int64) ([]types.User_, error) {
+	fs := []types.User_{}
+
+	sqlQuery := `
+	SELECT
+		u.username,
+		u.full_name,
+		u.photo_url,
+		0 as is_self,
+		0 as is_following
+	FROM
+		KUser u INNER JOIN Topic_Follower tf ON u.user_id=tf.followed_by left join usermap map on u.user_id=map.user_id
+	WHERE tf.topic_id=$1
+	GROUP BY u.user_id
+	ORDER BY (SELECT COUNT(map.follower_id)) DESC
+	`
+
+	rows, err := a.DB.Query(sqlQuery, topicID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return fs, nil
+		}
+		return fs, err
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+		f := types.User_{}
+		err := rows.Scan(&f.Username, &f.FullName, &f.Picture, &f.IsSelf, &f.IsFollowing)
+		if err != nil {
+			return fs, nil
+		}
+		fs = append(fs, f)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return fs, err
+	}
+
+	return fs, nil
+}
+
+func (a *App) AuthOpinionsQuery(userID int64, topicID int64) ([]types.Opinion_, error) {
+
+}
+
+func (a *App) OpinionsQuery(topicID int64) ([]types.Opinion_, error) {
+
 }

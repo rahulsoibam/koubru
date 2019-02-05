@@ -6,8 +6,8 @@ import (
 )
 
 // RespondWithError function to respond with error in JSON format
-func RespondWithError(w http.ResponseWriter, code int, message string) {
-	RespondWithJSON(w, code, map[string]string{"error": message})
+func RespondWithError(w http.ResponseWriter, code int, err error) {
+	RespondWithJSON(w, code, map[string]string{"error": err.Error()})
 }
 
 // RespondWithJSON function to return response in JSON format

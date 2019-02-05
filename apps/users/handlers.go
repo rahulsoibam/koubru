@@ -1,4 +1,4 @@
-package user
+package users
 
 import (
 	"database/sql"
@@ -6,9 +6,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-
-	"github.com/rahulsoibam/koubru-prod-api/errs"
-	"github.com/rahulsoibam/koubru-prod-api/types"
 
 	"github.com/go-chi/chi"
 	"github.com/lib/pq"
@@ -20,42 +17,29 @@ import (
 // Get details of authenticated user
 func (a *App) Get(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
-	if !auth {
-		a.Log.Errorln(ctx)
-		utils.RespondWithError(w, http.StatusUnauthorized, errs.Unauthorized)
-		return
-	}
-
-	user := types.User{}
+	userID := ctx.Value(middleware.UserCtxKeys(0)).(int64)
 	var err error
-
-	user, err = a.AuthGetQuery(userID)
+	user, err := a.GetUserDataUsingUserID(userID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			a.Log.Infoln(err)
-			utils.RespondWithError(w, http.StatusNotFound, errs.UserNotFound)
+			utils.RespondWithError(w, http.StatusNotFound, "User not found")
 			return
 		}
-		a.Log.Errorln(err)
-		utils.RespondWithError(w, http.StatusInternalServerError, err)
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	utils.RespondWithJSON(w, http.StatusOK, user)
+	utils.RespondWithJSON(w, http.StatusOK, &user)
 }
 
 // Followers to list followers to authenticated user
 func (a *App) Followers(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
-	if !auth {
-		a.Log.Errorln(ctx)
-		utils.RespondWithError(w, http.StatusUnauthorized, errs.Unauthorized)
+	userID, ok := ctx.Value(middleware.UserCtxKeys(0)).(int64)
+	if !ok {
+		utils.RespondWithError(w, http.StatusUnauthorized, "You are unauthorized to perfrom this action")
 		return
 	}
-
-	followers := []types.User_{}
-	followers, err := a.AuthFollowersQuery(userID)
+	followers, err := a.(userID)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return

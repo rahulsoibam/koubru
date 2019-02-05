@@ -10,6 +10,7 @@ func (a *App) Routes() chi.Router {
 	r.Group(func(r chi.Router) {
 		r.Use(a.Middleware.OptionalAuthorization)
 		r.Use(a.Middleware.Pagination)
+		r.Use(a.Middleware.Sorting)
 		r.Get("/", a.List)
 	})
 	r.Group(func(r chi.Router) {
@@ -18,6 +19,7 @@ func (a *App) Routes() chi.Router {
 		r.Post("/follow", a.BulkFollow)
 	})
 	r.Route("/{category_id:[0-9]+}", func(r chi.Router) {
+		r.Use(a.Middleware.CategoryID)
 		r.Group(func(r chi.Router) {
 			r.Use(a.Middleware.OptionalAuthorization)
 			r.Get("/", a.Get)

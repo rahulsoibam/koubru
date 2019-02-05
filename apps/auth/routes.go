@@ -15,11 +15,11 @@ func (a *App) Routes() chi.Router {
 	r.Get("/username/check", a.CheckUsername)
 	r.Get("/verify-email", a.VerifyEmail)
 	r.Group(func(r chi.Router) {
-		r.Use(a.Middleware.UserCtx)
+		r.Use(a.Middleware.RequireAuthorization)
 		// TODO r.Post("/link/google", a.LinkGoogle)
 		// TODO r.Post("/link/facebook", a.LinkFacebook)
+		// r.Get("/sessions", a.Sessions)
 		r.Post("/logout", a.Logout)
 	})
-	// r.Get("/sessions", a.Sessions)
 	return r
 }

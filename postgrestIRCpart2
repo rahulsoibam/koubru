@@ -1,0 +1,20 @@
+[05:49:21]  <Meraki>	RhodiumToad I'm a Computer Science student and after your wizardry last night, I wanna learn and master Postgres. Do you have any recommendations on what resources I should refer to?/
+[05:51:34] 	morenoh149 (~nope@ool-3f8fc4eb.dyn.optonline.net) joined the channel
+[05:53:00] 	admin123 (~nope@ool-3f8fc4eb.dyn.optonline.net) left IRC (Ping timeout: 246 seconds)
+[05:54:13]  <pagnol>	Meraki, maybe the sources would be a good start? https://github.com/postgres/postgres
+[05:54:53]  <peerce>	i'd suggest writing a series of increasingly complex applications that use SQL, best way to learn is by doing.
+[05:54:56] 	pcav1 (~Thunderbi@37.160.80.159) left IRC (Ping timeout: 240 seconds)
+[05:55:38]  <davidfetter>	Meraki, what would you like to work on first?
+[05:57:12] 	savolla (~savolla@95.10.205.202) left IRC (Ping timeout: 246 seconds)
+[05:58:04]  <Meraki>	peerce davidfetter I learn better by doing. So I think I wanna build a social network, sounds about the right amount of complexity for me. Any resouces or suggestions on where to write queries involving complex relations between tables are welcome.
+[05:58:29]  <Meraki>	*how
+[05:59:50]  <davidfetter>	so you want to build something with SQL. great! any graph query (how many friends am I away from person X, for example) would probably count as "advanced"
+[05:59:56]  <davidfetter>	??cte
+[05:59:57]  <pg_docbot> http://wiki.postgresql.org/wiki/CTEReadme :: http://en.wikipedia.org/wiki/Common_table_expressions
+[05:59:57]  <pg_docbot>	http://www.depesz.com/2008/10/07/waiting-for-84-common-table-expressions-with-queries/ :: http://www.depesz.com/2011/04/27/find-cheapest-combination-of-rooms-in-hotels/
+[05:59:57]  <pg_docbot>	http://www.depesz.com/2011/12/16/rtrees-recursive-trees-what-did-you-think-about/ :: https://www.postgresql.org/docs/current/static/queries-with.html
+[06:00:00]  <davidfetter>	??graph
+[06:00:00]  <pg_docbot>	http://pgfoundry.org/projects/sparsegraph/ :: http://pgfoundry.org/projects/biopostgres/
+[06:00:00]  <pg_docbot>	http://pgfoundry.org/projects/pggraph/
+[06:00:14]  <davidfetter>	hrm. that second one didn't pull up the stuff I'd hoped it would
+[06:35:39]  <davidfetter>	recursive CTEs. I tend to keep the graph (edge) stuff in tables separate from the nodes (users, for example)

@@ -6,17 +6,13 @@ import (
 	"strconv"
 
 	"github.com/rahulsoibam/koubru-prod-api/authutils"
+	"github.com/rahulsoibam/koubru-prod-api/errs"
 
 	"github.com/go-redis/redis"
 	"github.com/rahulsoibam/koubru-prod-api/utils"
 )
 
-// UserCtxKeys stores key to use when accessing context values
 type AuthKeys string
-
-type Middleware struct {
-	AuthCache *redis.Client
-}
 
 func (m *Middleware) RequireAuthorization(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -26,26 +22,29 @@ func (m *Middleware) RequireAuthorization(next http.Handler) http.Handler {
 		authHeader := r.Header.Get("Authorization")
 		authToken, err := authutils.HeaderToTokenString(authHeader)
 		if err != nil {
-			utils.RespondWithError(w, http.StatusUnauthorized, err.Error())
+			m.Log.Infoln(err)
+			utils.RespondWithError(w, http.StatusUnauthorized, err) // Directly returning err to user is harmless here. Custom token with harmless message
 			return
 		}
 
 		// Get user id from redis session store cache
 		response, err := m.AuthCache.Get(authToken).Result()
 		if err == redis.Nil {
-			utils.RespondWithError(w, http.StatusUnauthorized, "You are not authorized to perfrom the following action. Please login or signup")
+			m.Log.Errorln(err)
+			utils.RespondWithError(w, http.StatusUnauthorized, errs.Unauthorized)
 			return
 		} else if err != nil {
+			m.Log.Errorln(err)
 			// If there is an error fetching from the cache, return an internal server error
-			utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+			utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 			return
 		}
 
 		// Convert to integer
 		userID, _ = strconv.ParseInt(response, 10, 64)
 
-		ctx = context.WithValue(ctx, AuthKeys("userID"), userID)
-		ctx = context.WithValue(ctx, AuthKeys("authToken"), authToken)
+		ctx = context.WithValue(ctx, AuthKeys("user_id"), userID)
+		ctx = context.WithValue(ctx, AuthKeys("auth_token"), authToken)
 		// ctx = context.WithValue(r.Context(), TokenKey, authToken)
 		// ctx = context.WithValue(r.Context(), "token", &authToken)
 
@@ -61,31 +60,38 @@ func (m *Middleware) OptionalAuthorization(next http.Handler) http.Handler {
 		authHeader := r.Header.Get("Authorization")
 		authToken, err := authutils.HeaderToTokenString(authHeader)
 		if err != nil {
-			if err == authutils.ErrNoHeader {
-				ctx = context.WithValue(ctx, AuthKeys("userID"), 0)
+			if err == errs.NoHeader {
+				ctx = context.WithValue(ctx, AuthKeys("user_id"), 0)
 				next.ServeHTTP(w, r.WithContext(ctx))
 				return
 			}
-			utils.RespondWithError(w, http.StatusUnauthorized, err.Error())
+			m.Log.Infoln(err)
+			utils.RespondWithError(w, http.StatusUnauthorized, errs.Unauthorized)
 			return
 		}
 
 		// Get user id from redis session store cache
 		response, err := m.AuthCache.Get(authToken).Result()
 		if err == redis.Nil {
-			utils.RespondWithError(w, http.StatusUnauthorized, "You are not authorized to perfrom the following action. Please login or signup")
+			m.Log.Infoln(err)
+			utils.RespondWithError(w, http.StatusUnauthorized, errs.Unauthorized)
 			return
 		} else if err != nil {
 			// If there is an error fetching from the cache, return an internal server error
-			utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+			m.Log.Infoln(err)
+			utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 			return
 		}
 
 		// Convert to integer
-		userID, _ = strconv.ParseInt(response, 10, 64)
+		userID, err = strconv.ParseInt(response, 10, 64)
+		if err != nil {
+			m.Log.Infoln(err)
+			utils.RespondWithError(w, http.StatusBadRequest, errs.Unauthorized)
+		}
 
-		ctx = context.WithValue(ctx, AuthKeys("userID"), userID)
-		ctx = context.WithValue(ctx, AuthKeys("authToken"), authToken)
+		ctx = context.WithValue(ctx, AuthKeys("user_id"), userID)
+		ctx = context.WithValue(ctx, AuthKeys("auth_token"), authToken)
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

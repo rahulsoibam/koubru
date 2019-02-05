@@ -3,121 +3,72 @@ package topics
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
 
-	"github.com/go-chi/chi"
 	"github.com/lib/pq"
 
+	"github.com/rahulsoibam/koubru-prod-api/errs"
 	"github.com/rahulsoibam/koubru-prod-api/middleware"
+	"github.com/rahulsoibam/koubru-prod-api/types"
 	"github.com/rahulsoibam/koubru-prod-api/utils"
 )
 
 // List all topics
 func (a *App) List(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	userID, ok := ctx.Value(middleware.UserCtxKeys(0)).(int64)
-	perPage := r.FormValue("per_page")
-	page := r.FormValue("page")
-	sort := r.FormValue("sort")
-	order := r.FormValue("order")
-
-	limit, err := strconv.Atoi(perPage)
-	if err != nil || limit <= 0 {
-		limit = 30
-	}
-
-	var offset = 0
-	pg, err := strconv.Atoi(page)
-	if err != nil || pg <= 1 {
-		offset = 0
-	} else {
-		offset = (pg - 1) * limit
-	}
-
-	var orderBy string
-	switch sort {
-	case "",
-		"created":
-		orderBy = "created_on"
-	default:
-		utils.RespondWithError(w, http.StatusBadRequest, "sort value invalid")
-		return
-	}
-
-	switch order {
-	case "":
-		order = "desc"
-	case "asc":
-	case "desc":
-	default:
-		utils.RespondWithError(w, http.StatusBadRequest, "order value invalid")
-		return
-	}
-
-	var topics *[]Topic
-	// Optional authentication
-	if ok {
-		topics, err = a.dbAuthenticatedListTopics(userID, limit, offset, orderBy, order)
-	} else {
-		topics, err = a.dbListTopics(limit, offset, orderBy, order)
-	}
-	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	utils.RespondWithJSON(w, http.StatusOK, &topics)
+	w.Write([]byte("Low priority. Will be added with search functionality after setting up ElastcSearch"))
 }
 
 // Create a topic
 func (a *App) Create(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userID, ok := ctx.Value(middleware.UserCtxKeys(0)).(int64)
-	if !ok {
-		utils.RespondWithError(w, http.StatusUnauthorized, "Problem with the user id associated with this token")
+	userID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
+	if !auth {
+		a.Log.Infoln(errs.Unauthorized)
+		utils.RespondWithError(w, http.StatusUnauthorized, errs.Unauthorized)
 		return
 	}
-	var nt *NewTopic
-	err := json.NewDecoder(r.Body).Decode(&nt)
+	var t types.NewTopic
+	err := json.NewDecoder(r.Body).Decode(&t)
 	if err != nil {
-		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
+		a.Log.Infoln(err, r.Body)
+		utils.RespondWithError(w, http.StatusBadRequest, errs.BadRequest)
 		return
 	}
 	defer r.Body.Close()
 	// Validate the topic
-	if err := nt.Validate(); err != nil {
-		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
+	if err := t.Validate(); err != nil {
+		a.Log.Infoln(err)
+		utils.RespondWithError(w, http.StatusBadRequest, errs.BadRequest)
 		return
 	}
 
-	topic, err := a.dbCreateTopic(nt, userID)
+	topic, err := a.AuthCreateQuery(userID, t)
 	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		a.Log.Errorln(err)
+		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
-	utils.RespondWithJSON(w, http.StatusOK, &topic)
+	utils.RespondWithJSON(w, http.StatusOK, topic)
 }
 
 // Get details of a topic
 func (a *App) Get(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	topicID, err := strconv.ParseInt(chi.URLParam(r, "topic_id"), 10, 64)
-	if err != nil {
-		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
-		return
-	}
+	userID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
+	topicID := ctx.Value(middleware.TopicKeys("topic_id")).(int64)
 
-	userID, ok := ctx.Value(middleware.UserCtxKeys(0)).(int64)
-	var topic *Topic
-	if ok {
-		topic, err = a.dbAuthenticatedGetTopicByID(userID, topicID)
+	topic := types.Topic{}
+	var err error
+	if auth {
+		topic, err = a.AuthGetQuery(userID, topicID)
 	} else {
-		topic, err = a.dbGetTopicByID(topicID)
+		topic, err = a.GetQuery(topicID)
 	}
 	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		a.Log.Errorln(err)
+		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
-	utils.RespondWithJSON(w, http.StatusOK, &topic)
+	utils.RespondWithJSON(w, http.StatusOK, topic)
 }
 
 // Patch a topic
@@ -132,61 +83,103 @@ func (a *App) Delete(w http.ResponseWriter, r *http.Request) {
 
 // Followers of a topic
 func (a *App) Followers(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
+	topicID := ctx.Value(middleware.TopicKeys("topic_id")).(int64)
 
+	followers := []types.User_{}
+	var err error
+	if auth {
+		followers, err = a.AuthFollowersQuery(userID, topicID)
+	} else {
+		followers, err = a.FollowersQuery(topicID)
+	}
+	if err != nil {
+		a.Log.Errorln(err)
+		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
+		return
+	}
+	utils.RespondWithJSON(w, http.StatusOK, followers)
 }
 
 // Follow a topic
 func (a *App) Follow(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	id := chi.URLParam(r, "topic_id")
-	followerID, ok := ctx.Value(middleware.UserCtxKeys(0)).(int64)
-	if !ok {
-		utils.RespondWithError(w, http.StatusUnauthorized, "Invalid user. Please try authenticating again")
+	topicID := ctx.Value(middleware.TopicKeys("topic_id")).(int64)
+	followerID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
+
+	if !auth {
+		a.Log.Errorln(errs.UnintendedExecution)
+		utils.RespondWithError(w, http.StatusUnauthorized, errs.Unauthorized)
 		return
 	}
-	_, err := a.DB.Exec("INSERT INTO Topic_Follower (topic_id, followed_by) VALUES ($1, $2)", id, followerID)
+	_, err := a.DB.Exec("INSERT INTO Topic_Follower (topic_id, followed_by) VALUES ($1, $2)", topicID, followerID)
 	if err != nil {
 		if e, ok := err.(*pq.Error); ok {
 			if e.Code == "23505" {
-				utils.RespondWithError(w, http.StatusBadRequest, "You are already following this topic")
+				a.Log.Infoln(err)
+				utils.RespondWithError(w, http.StatusBadRequest, errs.TopicFollowAlreadyFollowing)
 				return
 			}
-			utils.RespondWithError(w, http.StatusInternalServerError, e.Detail)
-			return
 		}
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		a.Log.Errorln(err)
+		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
-	utils.RespondWithMessage(w, http.StatusOK, "Successfully followed topic")
+	utils.RespondWithMessage(w, http.StatusOK, "Followed")
 }
 
 // Unfollow a topic
 func (a *App) Unfollow(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	id := chi.URLParam(r, "topic_id")
-	followerID, ok := ctx.Value(middleware.UserCtxKeys(0)).(int64)
-	if !ok {
-		utils.RespondWithError(w, http.StatusUnauthorized, "Invalid user. Please try authticating again")
+	topicID := ctx.Value(middleware.TopicKeys("topic_id")).(int64)
+	followerID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
+	if !auth {
+		a.Log.Errorln(errs.UnintendedExecution)
+		utils.RespondWithError(w, http.StatusUnauthorized, errs.Unauthorized)
 		return
 	}
-	response, err := a.DB.Exec("DELETE FROM Topic_Follower WHERE topic_id=$1 AND followed_by=$2", id, followerID)
+	response, err := a.DB.Exec("DELETE FROM Topic_Follower WHERE topic_id=$1 AND followed_by=$2", topicID, followerID)
 	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		a.Log.Errorln(err)
+		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
 	count, err := response.RowsAffected()
 	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		a.Log.Errorln(err)
+		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
 	if count == 0 {
-		utils.RespondWithError(w, http.StatusBadRequest, "You do not follow this topic")
+		utils.RespondWithError(w, http.StatusBadRequest, errs.CategoryUnfollowNotFollowing)
 		return
 	}
-	utils.RespondWithMessage(w, http.StatusOK, "Topic unfollowed")
+	utils.RespondWithMessage(w, http.StatusOK, "Unfollowed")
 }
 
 // Report a topic
 func (a *App) Report(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Report a topic"))
+}
+
+func (a *App) Opinions(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	topicID := ctx.Value(middleware.TopicKeys("topic_id")).(int64)
+	userID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
+
+	opinions := []types.Opinion_{}
+	var err error
+	if auth {
+		opinions, err = a.AuthOpinionsQuery(userID, topicID)
+	} else {
+		opinions, err = a.OpinionsQuery(topicID)
+	}
+	if err != nil {
+		a.Log.Errorln(err)
+		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
+		return
+	}
+
+	utils.RespondWithJSON(w, http.StatusOK, opinions)
 }

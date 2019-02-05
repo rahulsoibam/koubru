@@ -1,22 +1,18 @@
 package authutils
 
 import (
-	"errors"
 	"strings"
-)
 
-var (
-	ErrNoHeader = errors.New("Authorization header required")
-	ErrNoBearer = errors.New("Authorization requires Bearer scheme")
+	"github.com/rahulsoibam/koubru-prod-api/errs"
 )
 
 // HeaderToTokenString returns token from the Authorization header
 func HeaderToTokenString(authHeader string) (string, error) {
 	if authHeader == "" {
-		return "", ErrNoHeader
+		return "", errs.NoHeader
 	}
 	if !strings.HasPrefix(authHeader, "Bearer ") {
-		return "", ErrNoBearer
+		return "", errs.NoBearer
 	}
 	authToken := authHeader[len("Bearer "):]
 	return authToken, nil
