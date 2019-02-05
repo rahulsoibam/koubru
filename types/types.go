@@ -211,5 +211,8 @@ func (no *NewOpinion) Validate() error {
 	if utils.IsValidOpinion(no.Reaction) {
 		return errors.New("Not a valid reaction")
 	}
+	if no.Mp4 == "" {
+		return errors.New("Problem with upload")
+	}
 	return nil
 }
