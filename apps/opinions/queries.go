@@ -48,6 +48,7 @@ func (a *App) AuthListQuery(ctx context.Context, userID int64) ([]types.Opinion,
         LEFT JOIN Topic_Category tc on tc.topic_id = t.topic_id
         LEFT JOIN Category c on c.category_id=tc.category_id
 	GROUP BY o.opinion_id, u.user_id, t.topic_id, views, ov.vote
+	ORDER BY o.created_on DESC
 	LIMIT $2 OFFSET $3
 	`
 
@@ -113,8 +114,8 @@ func (a *App) ListQuery(ctx context.Context) ([]types.Opinion, error) {
         LEFT JOIN Topic_Category tc on tc.topic_id = t.topic_id
         LEFT JOIN Category c on c.category_id=tc.category_id
 	GROUP BY o.opinion_id, u.user_id, t.topic_id, views
-	ORDER BY o.created_on
-	LIMIT $2 OFFSET $3
+	ORDER BY o.created_on DESC
+	LIMIT $1 OFFSET $2
 	`
 
 	rows, err := a.DB.Query(sqlQuery, limit, offset)
