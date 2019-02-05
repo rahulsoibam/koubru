@@ -9,6 +9,7 @@ var (
 	CategoryFollowAlreadyFollowing = errors.New("You have already followed this topic.")
 	TopicFollowAlreadyFollowing    = errors.New("You have already followed this category.")
 	CategoryUnfollowNotFollowing   = errors.New("You do not follow this category.")
+	CategoryAlreadyExists          = errors.New("Category already exists. Cannot create a duplicate")
 	TopicUnfollowNotFollowing      = errors.New("You do not follow this topic.")
 	BadRequest                     = errors.New("Bad request.")
 	Unauthorized                   = errors.New("You are not authorized to perform this action.")

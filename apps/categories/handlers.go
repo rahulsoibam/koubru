@@ -68,8 +68,10 @@ func (a *App) Create(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if e, ok := err.(*pq.Error); ok {
 			a.Log.Errorln(e, e.Detail, e.Code)
-			utils.RespondWithError(w, http.StatusBadRequest, errs.BadRequest)
-			return
+			if e.Code == "23505" {
+				utils.RespondWithError(w, http.StatusBadRequest, errs.CategoryAlreadyExists)
+				return
+			}
 		}
 		a.Log.Errorln(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
