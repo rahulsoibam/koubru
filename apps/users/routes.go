@@ -14,7 +14,8 @@ func (a *App) Routes() chi.Router {
 			r.Get("/", a.Get)                // DONE
 			r.Get("/followers", a.Followers) // ERROR
 			r.Get("/following", a.Following) // NEED FIX is_followed NOT WORKING
-			r.Get("/topics", a.Topics)       // DONE
+			r.Get("/opinions", a.Opinions)
+			r.Get("/topics", a.Topics) // DONE
 			//	r.Get("/opinions", a.UsersOpinions)
 		})
 		r.Group(func(r chi.Router) {
