@@ -101,17 +101,17 @@ func (a *App) AuthCreateQuery(userID int64, c types.NewCategory) (types.Category
 		return cres, err
 	}
 
-	// TODO GET CATEGORY PAGE
-	cres, err = a.AuthGetQuery(userID, categoryID)
-	if err != nil {
-		tx.Rollback()
-		return cres, err
-	}
-
 	err = tx.Commit()
 	if err != nil {
 		return cres, nil
 	}
+
+	// TODO GET CATEGORY PAGE
+	cres, err = a.AuthGetQuery(userID, categoryID)
+	if err != nil {
+		return cres, err
+	}
+
 	return cres, nil
 }
 
