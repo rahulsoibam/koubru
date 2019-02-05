@@ -18,8 +18,8 @@ func (a *App) List(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
 	query := r.FormValue("q")
-	limit := ctx.Value("per_page").(int)
-	offset := ctx.Value("db_offset").(int)
+	limit := ctx.Value(middleware.PaginationKeys("per_page")).(int)
+	offset := ctx.Value(middleware.PaginationKeys("db_offset")).(int)
 
 	categories := []types.Category_{}
 	var err error
