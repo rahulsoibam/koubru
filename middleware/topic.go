@@ -32,6 +32,7 @@ func (m *Middleware) TopicID(next http.Handler) http.Handler {
 			if err == sql.ErrNoRows {
 				m.Log.Infoln(err)
 				utils.RespondWithError(w, http.StatusNotFound, errs.TopicNotFound)
+				return
 			}
 			m.Log.Errorln(err)
 			utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
