@@ -233,3 +233,34 @@ func (a *App) GetQuery(opinionID int64) (types.Opinion, error) {
 	}
 	return o, nil
 }
+
+func (a *App) AuthCreateQuery(userID int64, no types.NewOpinion) (types.Opinion, error) {
+	o := types.Opinion{}
+	tx, err := a.DB.Begin()
+	if err != nil {
+		return o, err
+	}
+
+	var opinionID int64
+	err = tx.QueryRow("INSERT INTO Opinion (topic_id, creator_id, reaction, is_anonymous, dash) VALUES ($1, $2, $3, $4) RETURNING opinion_id", no.TopicID, userID, no.Reaction, no.IsAnonymous, no.Mp4).Scan(&opinionID)
+	if err != nil {
+		tx.Rollback()
+		return o, err
+	}
+
+	_, err = tx.Exec("INSERT INTO opinion_follower (opinion_id, follower_id) VALUES ($1, $2)", opinionID, userID)
+	if err != nil {
+		tx.Rollback()
+		return o, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		return o, err
+	}
+
+	o, err = a.AuthGetQuery(userID, opinionID)
+	if err != nil {
+		return o, err
+	}
+	return o, nil
+}

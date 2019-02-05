@@ -82,6 +82,8 @@ func main() {
 		Cache:      cache,
 		Middleware: koubruMiddleware,
 		Log:        logg,
+		Flake:      flake,
+		Uploader:   uploader,
 	}
 	r.Mount("/opinions", oa.Routes())
 	aa := auth.App{

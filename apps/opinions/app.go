@@ -3,6 +3,10 @@ package opinions
 import (
 	"database/sql"
 
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+
+	"github.com/sony/sonyflake"
+
 	"github.com/rahulsoibam/koubru/logger"
 
 	"github.com/rahulsoibam/koubru/middleware"
@@ -16,4 +20,6 @@ type App struct {
 	Cache      *redis.Client
 	Middleware *middleware.Middleware
 	Log        *logger.Logger
+	Flake      *sonyflake.Sonyflake
+	Uploader   *s3manager.Uploader
 }

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"time"
+
+	"github.com/rahulsoibam/koubru/utils"
 )
 
 // User type stores the basic overview info of the user
@@ -191,6 +193,23 @@ func (t *NewTopic) Validate() error {
 	}
 	if len(t.Details) > 1024 {
 		return errors.New("Details should be less than 1024 characters")
+	}
+	return nil
+}
+
+type NewOpinion struct {
+	TopicID     int64  `json:"topic_id"`
+	Reaction    string `json:"reaction"`
+	IsAnonymous bool   `json:"is_anonymous"`
+	Mp4         string `json:"mp4"`
+}
+
+func (no *NewOpinion) Validate() error {
+	if no.TopicID == 0 {
+		return errors.New("Topic ID is required")
+	}
+	if utils.IsValidOpinion(no.Reaction) {
+		return errors.New("Not a valid reaction")
 	}
 	return nil
 }
