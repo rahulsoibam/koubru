@@ -53,3 +53,11 @@ func (a App) Report(w http.ResponseWriter, r *http.Request) {
 func (a App) Vote(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Vote on an opinion"))
 }
+
+func (a *App) Breadcrumbs(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("Breadcrumbs of an opinion"))
+}
+
+func (a *App) Reply(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("Direct replies of an opinion"))
+}

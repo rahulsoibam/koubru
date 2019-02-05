@@ -58,6 +58,7 @@ var (
 const MaxUploadSize = 200 << 20
 
 func main() {
+	log.SetFlags(log.Ldate | log.Ltime | log.Llongfile)
 	initializeLogger()
 	initializeDB()
 	initializeAuthDB()
