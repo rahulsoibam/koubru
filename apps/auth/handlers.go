@@ -262,10 +262,11 @@ func (a *App) Facebook(w http.ResponseWriter, r *http.Request) {
 			userID, err = a.dbRegisterUserUsingFacebook(fu, username)
 			if err != nil {
 				if e, ok := err.(*pq.Error); ok {
+					a.Log.Errorln(e)
 					utils.RespondWithError(w, http.StatusInternalServerError, errors.New(e.Detail))
 					return
 				}
-
+				a.Log.Errorln(err)
 				utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 				return
 			}
