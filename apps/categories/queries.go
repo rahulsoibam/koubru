@@ -89,7 +89,7 @@ func (a *App) AuthCreateQuery(userID int64, c types.NewCategory) (types.Category
 		return cres, err
 	}
 	var categoryID int64
-	err = tx.QueryRow("INSERT INTO category (name, created_by) VALUES ($1, $2) RETURNING category_id", c.Name, userID).Scan(&categoryID)
+	err = tx.QueryRow("INSERT INTO category (name, creator_id) VALUES ($1, $2) RETURNING category_id", c.Name, userID).Scan(&categoryID)
 	if err != nil {
 		tx.Rollback()
 		return cres, err
