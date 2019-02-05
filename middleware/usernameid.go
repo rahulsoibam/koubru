@@ -30,6 +30,7 @@ func (m *Middleware) UsernameID(next http.Handler) http.Handler {
 			return
 		}
 		ctx = context.WithValue(ctx, UsernameIDKeys("username_id"), usernameID)
+		ctx = context.WithValue(ctx, UsernameIDKeys("username"), username)
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

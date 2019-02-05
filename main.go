@@ -12,6 +12,7 @@ import (
 	sendgrid "github.com/sendgrid/sendgrid-go"
 
 	"github.com/rahulsoibam/koubru-prod-api/authutils"
+	"github.com/rahulsoibam/koubru-prod-api/logger"
 	koubrumiddleware "github.com/rahulsoibam/koubru-prod-api/middleware"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -50,7 +51,7 @@ var (
 	sendgridClient   *sendgrid.Client
 	argon2Params     *authutils.Params
 	koubruMiddleware *koubrumiddleware.Middleware
-	logger           *logger.Logger
+	logg             *logger.Logger
 )
 
 // MaxUploadSize is the max upload size of videos (including accompanying form data) in bytes
@@ -84,7 +85,7 @@ func main() {
 		Middleware: koubruMiddleware,
 		DB:         db,
 		AuthDB:     authDB,
-		Logger:     logger,
+		Log:        logg,
 		// SendgridClient: sendgridClient,
 		Argon2Params: argon2Params,
 	}
@@ -94,7 +95,7 @@ func main() {
 		DB:         db,
 		Cache:      cache,
 		Middleware: koubruMiddleware,
-		Log:        logger,
+		Log:        logg,
 	}
 	r.Mount("/user", ua.Routes())
 
@@ -102,20 +103,20 @@ func main() {
 		DB:         db,
 		Cache:      cache,
 		Middleware: koubruMiddleware,
-		Log:        logger,
+		Log:        logg,
 	}
 	r.Mount("/users", usa.Routes())
 
 	ca := categories.App{
 		DB:         db,
 		Middleware: koubruMiddleware,
-		Log:        logger,
+		Log:        logg,
 	}
 
 	ta := topics.App{
 		DB:         db,
 		Middleware: koubruMiddleware,
-		Log:        logger,
+		Log:        logg,
 	}
 	r.Mount("/topics", ta.Routes())
 
@@ -132,7 +133,7 @@ func main() {
 }
 
 func initializeLogger() {
-	logger = logger.NewLogger(os.Stderr, os.Stdout, os.Stdout, os.Stderr)
+	logg = logger.NewLogger(os.Stderr, os.Stdout, os.Stdout, os.Stderr)
 }
 
 // Initialize sets up the database connection, s3 session and routes for the app

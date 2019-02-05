@@ -78,10 +78,12 @@ func (a *App) Login(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch err {
 		case sql.ErrNoRows:
-			utils.RespondWithError(w, http.StatusNotFound, errUserNotFound)
+			a.Log.Infoln(err)
+			utils.RespondWithError(w, http.StatusNotFound, errs.UserNotFound)
 			return
 		default:
-			utils.RespondWithError(w, http.StatusInternalServerError, errUserNotFound)
+			a.Log.Errorln(err)
+			utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 			return
 		}
 	}
@@ -91,8 +93,8 @@ func (a *App) Login(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch err {
 		case sql.ErrNoRows:
-			a.Log.Infoln(errNoPasswordSet)
-			utils.RespondWithError(w, http.StatusBadRequest, errNoPasswordSet)
+			a.Log.Infoln(err)
+			utils.RespondWithError(w, http.StatusBadRequest, errs.NoPasswordSet)
 			return
 		default:
 			a.Log.Errorln(err)
@@ -110,7 +112,7 @@ func (a *App) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !match {
-		utils.RespondWithError(w, http.StatusBadRequest, errPasswordNotMatch)
+		utils.RespondWithError(w, http.StatusBadRequest, errs.PasswordNotMatch)
 		return
 	}
 

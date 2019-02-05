@@ -2,7 +2,6 @@ package categories
 
 import (
 	"database/sql"
-	"encoding/json"
 
 	"github.com/rahulsoibam/koubru-prod-api/types"
 )
@@ -22,7 +21,7 @@ func (a *App) ListQuery(q string, limit int, offset int) ([]types.Category_, err
 	FROM category c FULL JOIN category_follower cf ON c.category_id=cf.category_id
 	WHERE name LIKE $1
 	GROUP BY c.category_id
-	ORDER BY (select count(cf.user_id)) DESC;
+	ORDER BY (select count(cf.follower_id)) DESC;
 	LIMIT $3 OFFSET $4
 	`
 	rows, err := a.DB.Query(sqlQuery, q, limit, offset)
@@ -53,8 +52,8 @@ func (a *App) AuthListQuery(userID int64, q string, limit int, offset int) ([]ty
 	SELECT
 		c.category_id, 
 		c.name, 
-		CASE WHEN (cf.user_id IS NULL) THEN  0 ELSE 1 END AS is_following
-	FROM category c LEFT JOIN category_follower cf ON c.category_id=cf.category_id AND cf.user_id=$1
+		CASE WHEN (cf.follower_id IS NULL) THEN  0 ELSE 1 END AS is_following
+	FROM category c LEFT JOIN category_follower cf ON c.category_id=cf.category_id AND cf.follower_id=$1
 	WHERE c.name LIKE $2
 	ORDER BY cf.followed_on DESC NULLS LAST
 	LIMIT $3 OFFSET $4
@@ -96,7 +95,7 @@ func (a *App) AuthCreateQuery(userID int64, c types.NewCategory) (types.Category
 		return cres, err
 	}
 
-	_, err = tx.Exec("INSERT INTO category_follower (category_id, user_id) VALUES ($1, $2)", categoryID, userID)
+	_, err = tx.Exec("INSERT INTO category_follower (category_id, follower_id) VALUES ($1, $2)", categoryID, userID)
 	if err != nil {
 		tx.Rollback()
 		return cres, err
@@ -125,37 +124,21 @@ func (a *App) AuthGetQuery(userID int64, categoryID int64) (types.Category, erro
         c.name,
         c.created_on,
         u.username,
-        u.photo_url,
-        CASE WHEN EXISTS (SELECT 1 from category_follower cf WHERE cf.category_id=c.category_id AND cf.user_id=$1) THEN 1 ELSE 0 END AS is_following
+        u.picture,
+		CASE WHEN EXISTS (SELECT 1 from category_follower cf WHERE cf.category_id=c.category_id AND cf.follower_id=$1) THEN 1 ELSE 0 END AS is_following,
+		(select count(*) from topic_category where category_id=c.category_id) as topics_count,
+		(select count(*) from category_follower where category_id=c.category_id) as followers_count
     FROM
-        Category c INNER JOIN KUser u ON c.created_by=u.user_id
+        Category c INNER JOIN KUser u ON c.creator_id=u.user_id
     WHERE
         c.category_id=$2
 	`
 
-	err := a.DB.QueryRow(sqlQuery, userID, categoryID).Scan(&c.ID, &c.Name, &c.CreatedOn, &c.CreatedBy.Username, &c.CreatedBy.FullName, &c.CreatedBy.Picture, &c.IsFollowing)
+	err := a.DB.QueryRow(sqlQuery, userID, categoryID).Scan(&c.ID, &c.Name, &c.CreatedOn, &c.CreatedBy.Username, &c.CreatedBy.FullName, &c.CreatedBy.Picture, &c.IsFollowing, &c.Counts.Topics, &c.Counts.Followers)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return c, nil
 		}
-		return c, err
-	}
-
-	err = a.DB.QueryRow(`
-	SELECT COUNT(*)
-	FROM topic_category tc
-	WHERE tc.category_id=$1
-	`, categoryID).Scan(&c.Counts.Topics)
-	if err != nil {
-		return c, err
-	}
-
-	err = a.DB.QueryRow(`
-	SELECT COUNT(*)
-	FROM category_follower cf
-	WHERE category_id=$1
-	`, categoryID).Scan(&c.Counts.Followers)
-	if err != nil {
 		return c, err
 	}
 
@@ -171,12 +154,14 @@ func (a *App) GetQuery(categoryID int64) (types.Category, error) {
         c.name,
         c.created_on,
         u.username,
-		u.photo_url,
-		0
+		u.picture,
+		0 as is_following,
+		(select count(*) from topic_category where category_id=c.category_id) as topics_count,
+		(select count(*) from category_follower where category_id=c.category_id) as followers_count
     FROM
-        Category c INNER JOIN KUser u ON c.created_by=u.user_id
+        Category c INNER JOIN KUser u ON c.creator_id=u.user_id
     WHERE
-        c.category_id=$2
+        c.category_id=$1
 	`
 
 	err := a.DB.QueryRow(sqlQuery, categoryID).Scan(&c.ID, &c.Name, &c.CreatedOn, &c.CreatedBy.Username, &c.CreatedBy.FullName, &c.CreatedBy.Picture, &c.IsFollowing)
@@ -184,24 +169,6 @@ func (a *App) GetQuery(categoryID int64) (types.Category, error) {
 		if err == sql.ErrNoRows {
 			return c, nil
 		}
-		return c, err
-	}
-
-	err = a.DB.QueryRow(`
-	SELECT COUNT(*)
-	FROM topic_category tc
-	WHERE tc.category_id=$1
-	`, categoryID).Scan(&c.Counts.Topics)
-	if err != nil {
-		return c, err
-	}
-
-	err = a.DB.QueryRow(`
-	SELECT COUNT(*)
-	FROM category_follower cf
-	WHERE category_id=$1
-	`, categoryID).Scan(&c.Counts.Followers)
-	if err != nil {
 		return c, err
 	}
 
@@ -215,12 +182,12 @@ func (a *App) AuthFollowersQuery(userID int64, categoryID int64) ([]types.User_,
 	SELECT
         u.username,
         u.full_name,
-        u.photo_url,
-        CASE WHEN cf.user_id=$1 THEN 1 ELSE 0 END AS is_self,
-        CASE WHEN EXISTS (SELECT 1 FROM usermap map where map.user_id=u.user_id AND map.follower_id=$1) THEN 1 ELSE 0 END AS is_following
+        u.picture,
+        CASE WHEN cf.follower_id=$1 THEN 1 ELSE 0 END AS is_self,
+        CASE WHEN EXISTS (SELECT 1 FROM user_follower uf where uf.user_id=u.user_id AND uf.follower_id=$1) THEN 1 ELSE 0 END AS is_following
     FROM
-        KUser u INNER JOIN Category_Follower cf ON u.user_id = cf.user_id
-    WHERE cf.category_id=$2
+        KUser u INNER JOIN Category_Follower cf ON u.user_id = cf.follower_id
+    WHERE cf.category_id=$2;
     ORDER BY is_self desc, is_following desc
 	`
 
@@ -258,13 +225,13 @@ func (a *App) FollowersQuery(categoryID int64) ([]types.User_, error) {
 	sqlQuery := `
 	SELECT
         u.username,
-		u.full_name,
-		u.photo_url
+        u.full_name,
+        u.picture
     FROM
-        KUser u INNER JOIN Category_Follower cf on u.user_id = cf.user_id left join usermap map on u.user_id=map.user_id
+        KUser u INNER JOIN Category_Follower cf on u.user_id = cf.follower_id left join user_follower uf on u.user_id=uf.user_id
     WHERE cf.category_id=$1
     GROUP BY u.user_id
-    ORDER BY (SELECT count(map.follower_id)) DESC
+    ORDER BY (SELECT count(uf.follower_id)) DESC
 	`
 
 	rows, err := a.DB.Query(sqlQuery, categoryID)
@@ -304,14 +271,14 @@ func (a *App) AuthTopicsQuery(userID int64, categoryID int64) ([]types.Topic_, e
 		t.created_on,
 		u.username,
 		u.full_name,
-		u.photo_url,
+		u.picture,
 		coalesce(json_agg(json_build_object('id',c.category_id,'name',c.name)) FILTER (WHERE c.category_id IS NOT NULL OR c.name IS NOT NULL), '[]'::json),
-		CASE WHEN EXISTS (SELECT 1 FROM topic_follower tofo WHERE tofo.topic_id=t.topic_id AND tofo.followed_by=$1) THEN 1 ELSE 0 END AS is_following,
-	FROM topic t inner join kuser u on t.created_by=u.user_id inner join topic_category tc on t.topic_id = tc.topic_id and tc.category_id = $2
+		CASE WHEN EXISTS (SELECT 1 FROM topic_follower tofo WHERE tofo.topic_id=t.topic_id AND tofo.follower_id=$1) THEN 1 ELSE 0 END AS is_following
+	FROM topic t inner join kuser u on t.creator_id=u.user_id inner join topic_category tc on t.topic_id = tc.topic_id and tc.category_id = $2
 	inner join topic_category tc2 on tc2.topic_id=t.topic_id
 	inner join category c on c.category_id=tc2.category_id
 	group by t.topic_id, u.user_id
-	ORDER BY (SELECT COUNT(tf.followed_by) FROM topic_follower tf WHERE tf.topic_id=t.topic_id GROUP BY tf.topic_id) DESC, t.created_on DESC
+	ORDER BY (SELECT COUNT(tf.follower_id) FROM topic_follower tf WHERE tf.topic_id=t.topic_id GROUP BY tf.topic_id) DESC, t.created_on DESC
 	`
 	rows, err := a.DB.Query(sqlQuery, userID, categoryID)
 	if err != nil {
@@ -325,16 +292,17 @@ func (a *App) AuthTopicsQuery(userID int64, categoryID int64) ([]types.Topic_, e
 	for rows.Next() {
 		t := types.Topic_{}
 		// IsFollowing will default to false
-		err := rows.Scan(&t.ID, &t.Title, &t.Details, &t.CreatedOn, &t.CreatedBy.Username, &t.CreatedBy.FullName, &t.CreatedBy.Picture, &t.IsFollowing, (*[]byte)(&t.Categories))
+		err := rows.Scan(&t.ID, &t.Title, &t.Details, &t.CreatedOn, &t.CreatedBy.Username, &t.CreatedBy.FullName, &t.CreatedBy.Picture, (*[]byte)(&t.Categories), &t.IsFollowing)
 		if err != nil {
 			return ts, err
-		}
-		if t.Categories == nil {
-			t.Categories = json.RawMessage("[]")
 		}
 		ts = append(ts, t)
 	}
 
+	err = rows.Err()
+	if err != nil {
+		return ts, err
+	}
 	return ts, nil
 }
 
@@ -350,13 +318,13 @@ func (a *App) TopicsQuery(categoryID int64) ([]types.Topic_, error) {
 		t.created_on,
 		u.username,
 		u.full_name,
-		u.photo_url,
+		u.picture,
 		coalesce(json_agg(json_build_object('id',c.category_id,'name',c.name)) FILTER (WHERE c.category_id IS NOT NULL OR c.name IS NOT NULL), '[]'::json)
-	FROM topic t inner join kuser u on t.created_by=u.user_id inner join topic_category tc on t.topic_id = tc.topic_id and tc.category_id = $1
+	FROM topic t inner join kuser u on t.creator_id=u.user_id inner join topic_category tc on t.topic_id = tc.topic_id and tc.category_id = $1
 	inner join topic_category tc2 on tc2.topic_id=t.topic_id
 	inner join category c on c.category_id=tc2.category_id
 	group by t.topic_id, u.user_id
-	ORDER BY (SELECT COUNT(tf.followed_by) FROM topic_follower tf WHERE tf.topic_id=t.topic_id GROUP BY tf.topic_id) DESC, t.created_on DESC;
+	ORDER BY (SELECT COUNT(tf.follower_id) FROM topic_follower tf WHERE tf.topic_id=t.topic_id GROUP BY tf.topic_id) DESC, t.created_on DESC
 	`
 	rows, err := a.DB.Query(sqlQuery, categoryID)
 	if err != nil {

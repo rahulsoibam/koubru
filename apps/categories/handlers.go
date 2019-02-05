@@ -108,7 +108,7 @@ func (a *App) Follow(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithError(w, http.StatusUnauthorized, errs.Unauthorized)
 		return
 	}
-	_, err := a.DB.Exec("INSERT INTO Category_Follower (category_id, user_id) VALUES ($1, $2)", categoryID, followerID)
+	_, err := a.DB.Exec("INSERT INTO Category_Follower (category_id, follower_id) VALUES ($1, $2)", categoryID, followerID)
 	if err != nil {
 		if e, ok := err.(*pq.Error); ok {
 			if e.Code == "23505" {
@@ -134,7 +134,7 @@ func (a *App) Unfollow(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithError(w, http.StatusUnauthorized, errs.Unauthorized)
 		return
 	}
-	response, err := a.DB.Exec("DELETE FROM Category_Follower WHERE category_id=$1 AND user_id=$2", categoryID, followerID)
+	response, err := a.DB.Exec("DELETE FROM Category_Follower WHERE category_id=$1 AND follower_id=$2", categoryID, followerID)
 	if err != nil {
 		a.Log.Errorln(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)

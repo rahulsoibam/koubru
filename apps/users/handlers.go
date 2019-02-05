@@ -2,13 +2,11 @@ package users
 
 import (
 	"database/sql"
-	"errors"
-	"log"
 	"net/http"
-	"strconv"
 
-	"github.com/go-chi/chi"
 	"github.com/lib/pq"
+	"github.com/rahulsoibam/koubru-prod-api/errs"
+	"github.com/rahulsoibam/koubru-prod-api/types"
 
 	"github.com/rahulsoibam/koubru-prod-api/middleware"
 	"github.com/rahulsoibam/koubru-prod-api/utils"
@@ -17,304 +15,173 @@ import (
 // Get details of authenticated user
 func (a *App) Get(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userID := ctx.Value(middleware.UserCtxKeys(0)).(int64)
+	userID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
+	usernameID := ctx.Value(middleware.UsernameIDKeys("username_id")).(int64)
+	// username := ctx.Value(middleware.UsernameIDKeys("username")).(string)
+
+	user := types.User{}
 	var err error
-	user, err := a.GetUserDataUsingUserID(userID)
+	if auth {
+		user, err = a.AuthGetQuery(userID, usernameID)
+	} else {
+		user, err = a.GetQuery(usernameID)
+	}
 	if err != nil {
 		if err == sql.ErrNoRows {
-			utils.RespondWithError(w, http.StatusNotFound, "User not found")
+			a.Log.Infoln(err)
+			utils.RespondWithError(w, http.StatusNotFound, errs.UserNotFound)
 			return
 		}
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		a.Log.Errorln(err)
+		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
-	utils.RespondWithJSON(w, http.StatusOK, &user)
+	utils.RespondWithJSON(w, http.StatusOK, user)
 }
 
 // Followers to list followers to authenticated user
 func (a *App) Followers(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userID, ok := ctx.Value(middleware.UserCtxKeys(0)).(int64)
-	if !ok {
-		utils.RespondWithError(w, http.StatusUnauthorized, "You are unauthorized to perfrom this action")
-		return
+	userID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
+	usernameID := ctx.Value(middleware.UsernameIDKeys("username_id")).(int64)
+	// username := ctx.Value(middleware.UsernameIDKeys("username")).(string)
+
+	followers := []types.Follower{}
+	var err error
+	if auth {
+		followers, err = a.AuthFollowersQuery(userID, usernameID)
+	} else {
+		followers, err = a.FollowersQuery(usernameID)
 	}
-	followers, err := a.(userID)
+
 	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		a.Log.Errorln(err)
+		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
-	utils.RespondWithJSON(w, http.StatusOK, &followers)
+	utils.RespondWithJSON(w, http.StatusOK, followers)
 }
 
 // Following to list users whom the authenticated user is following
 func (a *App) Following(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userID := ctx.Value(middleware.UserCtxKeys(0)).(int64)
-	following, err := a.dbAuthenticatedGetFollowing(userID)
-	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
+	userID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
+	usernameID := ctx.Value(middleware.UsernameIDKeys("username_id")).(int64)
+	// username := ctx.Value(middleware.UsernameIDKeys("username")).(string)
+
+	following := []types.Following{}
+	var err error
+	if auth {
+		following, err = a.AuthFollowingQuery(userID, usernameID)
+	} else {
+		following, err = a.FollowingQuery(usernameID)
 	}
 
-	// Construction of response
-	// result := struct {
-	// 	Following *[]FollowUser `json:"following"`
-	// }{Following: following}
-	utils.RespondWithJSON(w, http.StatusOK, &following)
-}
-
-// Opinions of authenticated user
-func (a *App) Opinions(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("list opinions of authenticated user"))
+	if err != nil {
+		a.Log.Errorln(err)
+		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
+		return
+	}
+	utils.RespondWithJSON(w, http.StatusOK, following)
 }
 
 // Topics of authenticated user
 func (a *App) Topics(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userID, ok := ctx.Value(middleware.UserCtxKeys(0)).(int64)
-	if !ok {
-		utils.RespondWithError(w, http.StatusUnauthorized, "You are unauthorized to view this request")
-	}
-	perPage := r.FormValue("per_page")
-	page := r.FormValue("page")
-	sort := r.FormValue("sort")
-	order := r.FormValue("order")
+	userID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
+	usernameID := ctx.Value(middleware.UsernameIDKeys("username_id")).(int64)
+	// username := ctx.Value(middleware.UsernameIDKeys("username")).(string)
 
-	limit, err := strconv.Atoi(perPage)
-	if err != nil || limit <= 0 {
-		limit = 30
-	}
-
-	var offset = 0
-	pg, err := strconv.Atoi(page)
-	if err != nil || pg <= 1 {
-		offset = 0
+	topics := []types.Topic_{}
+	var err error
+	if auth {
+		topics, err = a.AuthTopicsQuery(userID, usernameID)
 	} else {
-		offset = (pg - 1) * limit
+		topics, err = a.TopicsQuery(usernameID)
 	}
-
-	var orderBy string
-	switch sort {
-	case "",
-		"created":
-		orderBy = "created_on"
-	default:
-		utils.RespondWithError(w, http.StatusBadRequest, "sort value invalid")
-		return
-	}
-
-	switch order {
-	case "":
-		order = "desc"
-	case "asc":
-	case "desc":
-	default:
-		utils.RespondWithError(w, http.StatusBadRequest, "order value invalid")
-		return
-	}
-	topics, err := a.dbAuthenticatedListTopics(userID, userID, limit, offset, orderBy, order)
 	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		a.Log.Errorln(err)
+		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
-
-	utils.RespondWithJSON(w, http.StatusOK, &topics)
+	utils.RespondWithJSON(w, http.StatusOK, topics)
 }
 
-// USERS /users/ endpoint functions
-
-// UsersGet returns the details of a user
-func (a *App) UsersGet(w http.ResponseWriter, r *http.Request) {
-	username := chi.URLParam(r, "username")
+// Opinions of authenticated user
+func (a *App) Opinions(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userID, ok := ctx.Value(middleware.UserCtxKeys(0)).(int64)
-	quserID, err := a.validateUsernameAndGetID(username)
-	if err != nil {
-		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
-		return
-	}
-	log.Println(quserID)
-	var user *User
-	if ok {
-		user, err = a.dbAuthenticatedGetUser(userID, quserID)
+	userID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
+	usernameID := ctx.Value(middleware.UsernameIDKeys("username_id")).(int64)
+	// username := ctx.Value(middleware.UsernameIDKeys("username")).(string)
+
+	opinions := []types.Opinion{}
+	var err error
+	if auth {
+		opinions, err = a.AuthOpinionsQuery(userID, usernameID)
 	} else {
-		user, err = a.dbGetUser(quserID)
+		opinions, err = a.OpinionsQuery(usernameID)
 	}
 	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		a.Log.Errorln(err)
+		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
-	utils.RespondWithJSON(w, http.StatusOK, &user)
+	utils.RespondWithJSON(w, http.StatusOK, opinions)
 }
 
-func (a *App) UsersFollowers(w http.ResponseWriter, r *http.Request) {
+func (a *App) Follow(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userID, ok := ctx.Value(middleware.UserCtxKeys(0)).(int64)
-	username := chi.URLParam(r, "username")
-	quserID, err := a.validateUsernameAndGetID(username)
-	if err != nil {
-		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
+	followerID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
+	usernameID := ctx.Value(middleware.UsernameIDKeys("username_id")).(int64)
+	username := ctx.Value(middleware.UsernameIDKeys("username")).(string)
+	if !auth {
+		a.Log.Errorln(ctx)
+		utils.RespondWithError(w, http.StatusUnauthorized, errs.Unauthorized)
 		return
 	}
 
-	followers := []FollowUser{}
-
-	if ok {
-		followers, err = a.dbAuthenticatedGetFollowers(userID, quserID)
-	} else {
-		followers, err = a.dbGetFollowers(quserID)
-	}
-	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	utils.RespondWithJSON(w, http.StatusOK, &followers)
-
-}
-
-func (a *App) UsersFollowing(w http.ResponseWriter, r *http.Request) {
-	username := chi.URLParam(r, "username")
-	userID, err := a.validateUsernameAndGetID(username)
-	if err != nil {
-		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	following, err := a.dbGetFollowingByID(userID)
-	if err != nil {
-		utils.RespondWithJSON(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	utils.RespondWithJSON(w, http.StatusOK, &following)
-}
-
-func (a *App) UsersTopics(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	username := chi.URLParam(r, "username")
-	quserID, err := a.validateUsernameAndGetID(username)
-	userID, ok := ctx.Value(middleware.UserCtxKeys(0)).(int64)
-	if err != nil {
-		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
-		return
-	}
-	perPage := r.FormValue("per_page")
-	page := r.FormValue("page")
-	sort := r.FormValue("sort")
-	order := r.FormValue("order")
-
-	limit, err := strconv.Atoi(perPage)
-	if err != nil || limit <= 0 {
-		limit = 30
-	}
-
-	var offset = 0
-	pg, err := strconv.Atoi(page)
-	if err != nil || pg <= 1 {
-		offset = 0
-	} else {
-		offset = (pg - 1) * limit
-	}
-
-	var orderBy string
-	switch sort {
-	case "",
-		"created":
-		orderBy = "created_on"
-	default:
-		utils.RespondWithError(w, http.StatusBadRequest, "sort value invalid")
-		return
-	}
-
-	switch order {
-	case "":
-		order = "desc"
-	case "asc":
-	case "desc":
-	default:
-		utils.RespondWithError(w, http.StatusBadRequest, "order value invalid")
-		return
-	}
-
-	var topics *[]Topic
-	if ok {
-		topics, err = a.dbAuthenticatedListTopics(userID, quserID, limit, offset, orderBy, order)
-	} else {
-		topics, err = a.dbListTopics(quserID, limit, offset, orderBy, order)
-	}
-	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	utils.RespondWithJSON(w, http.StatusOK, &topics)
-}
-
-func (a *App) UsersOpinions(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("List opinions of a user"))
-}
-
-func (a *App) FollowUser(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	username := chi.URLParam(r, "username")
-	followerID := ctx.Value(middleware.UserCtxKeys(0)).(int64)
-	userID, err := a.validateUsernameAndGetID(username)
-	if err != nil {
-		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
-		return
-	}
-	_, err = a.DB.Exec("INSERT INTO UserMap (user_id, follower_id) VALUES ($1, $2)", userID, followerID)
+	_, err := a.DB.Exec("INSERT INTO User_Follower (user_id, follower_id) VALUES ($1, $2)", usernameID, followerID)
 	if err != nil {
 		if e, ok := err.(*pq.Error); ok {
 			if e.Code == "23505" {
-				utils.RespondWithError(w, http.StatusBadRequest, "You are already following this user")
+				a.Log.Infoln(e)
+				utils.RespondWithError(w, http.StatusBadRequest, errs.UserFollowAlreadyFollowing)
 				return
 			}
-
-			utils.RespondWithError(w, http.StatusInternalServerError, e.Detail)
-			return
 		}
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		a.Log.Errorln(err)
+		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
-	utils.RespondWithMessage(w, http.StatusOK, "You have followed "+username)
+	utils.RespondWithMessage(w, http.StatusOK, "@"+username+" followed.")
 }
 
-func (a *App) UnfollowUser(w http.ResponseWriter, r *http.Request) {
+func (a *App) Unfollow(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	username := chi.URLParam(r, "username")
-	followerID := ctx.Value(middleware.UserCtxKeys(0)).(int64)
-	userID, err := a.validateUsernameAndGetID(username)
-	if err != nil {
-		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
+	followerID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
+	usernameID := ctx.Value(middleware.UsernameIDKeys("username_id")).(int64)
+	username := ctx.Value(middleware.UsernameIDKeys("username")).(string)
+	if !auth {
+		a.Log.Errorln(ctx)
+		utils.RespondWithError(w, http.StatusUnauthorized, errs.Unauthorized)
 		return
 	}
-	response, err := a.DB.Exec("DELETE FROM UserMap WHERE user_id = $1 AND follower_id = $2", userID, followerID)
+
+	response, err := a.DB.Exec("DELETE FROM User_Follower WHERE user_id=$1 AND follower_id=$2", usernameID, followerID)
 	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		a.Log.Errorln(err)
+		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
 	count, err := response.RowsAffected()
 	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		a.Log.Errorln(err)
+		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
 	if count == 0 {
-		utils.RespondWithError(w, http.StatusBadRequest, "You do not follow this user")
+		utils.RespondWithError(w, http.StatusBadRequest, errs.UserUnfollowNotFollowing)
 		return
 	}
-	utils.RespondWithMessage(w, http.StatusOK, "User unfollowed")
-}
-
-func (a *App) validateUsernameAndGetID(username string) (int64, error) {
-	if err := utils.ValidateUsername(username); err != nil || !utils.UsernameRegex.MatchString(username) {
-		return 0, errors.New("username is invalid")
-	}
-	userID, err := a.dbGetUserIDUsingUsername(username)
-	if err != nil {
-		return 0, err
-	}
-	return userID, nil
+	utils.RespondWithMessage(w, http.StatusOK, "@"+username+" unfollowed.")
 }

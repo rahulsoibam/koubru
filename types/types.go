@@ -10,7 +10,7 @@ import (
 type User struct {
 	Username    string `json:"username"`
 	FullName    string `json:"full_name"`
-	PhotoURL    string `json:"picture"`
+	Picture     string `json:"picture"`
 	Bio         string `json:"bio"`
 	IsSelf      bool   `json:"is_self"`
 	IsFollowing bool   `json:"is_following"`
@@ -28,6 +28,24 @@ type User_ struct {
 	Picture     string `json:"picture"`
 	IsFollowing bool   `json:"is_following"`
 	IsSelf      bool   `json:"is_self"`
+}
+
+type Follower struct {
+	Username    string    `json:"username"`
+	FullName    string    `json:"full_name"`
+	Picture     string    `json:"picture"`
+	FollowedOn  time.Time `json:"followed_on"`
+	IsFollowing bool      `json:"is_following"`
+	IsSelf      bool      `json:"is_self"`
+}
+
+type Following struct {
+	Username    string    `json:"username"`
+	FullName    string    `json:"full_name"`
+	Picture     string    `json:"picture"`
+	FollowedOn  time.Time `json:"followed_on"`
+	IsFollowing bool      `json:"is_following"`
+	IsSelf      bool      `json:"is_self"`
 }
 
 // FollowUser type stores the data pertaining to the follower and the following view
@@ -66,17 +84,22 @@ type Topic_ struct {
 }
 
 type Topic struct {
-	ID          int64           `json:"id"`
-	Title       string          `json:"title"`
-	Details     string          `json:"details"`
-	CreatedOn   time.Time       `json:"created_on"`
-	CreatedBy   User_           `json:"created_by"`
+	ID        int64  `json:"id"`
+	Title     string `json:"title"`
+	Details   string `json:"details"`
+	CreatedBy struct {
+		Username string `json:"username"`
+		FullName string `json:"full_name"`
+		Picture  string `json:"picture"`
+		IsSelf   string `json:"is_self"`
+	} `json:"created_by"`
 	Categories  json.RawMessage `json:"categories"`
 	IsFollowing bool            `json:"is_following"`
+	CreatedOn   time.Time       `json:"created_on"`
 	Counts      struct {
 		Followers int64 `json:"followers"`
 		Opinions  int64 `json:"opinions"`
-	}
+	} `json:"counts"`
 }
 
 type Opinion struct {
@@ -85,6 +108,7 @@ type Opinion struct {
 		Username string `json:"username"`
 		FullName string `json:"full_name"`
 		Picture  string `json:"picture"`
+		IsSelf   bool   `json:"is_self"`
 	} `json:"created_by"`
 	Topic struct {
 		ID          int64           `json:"id"`
@@ -93,15 +117,18 @@ type Opinion struct {
 		Categories  json.RawMessage `json:"categories"`
 		IsFollowing bool            `json:"is_following"`
 	} `json:"topic"`
-	IsAnonymous  bool      `json:"is_anonymous"`
-	Vote         string    `json:"vote"`
-	IsFollowing  int64     `json:"is_following"`
-	ThumbnailURL string    `json:"thumbnail_url"`
-	HlsURL       string    `json:"hls_url"`  // Change to stream_src
-	DashURL      string    `json:"dash_url"` // Change to alt_stream_src
-	Reaction     string    `json:"reaction"`
-	CreatedOn    time.Time `json:"created_on"`
-	Counts       struct {
+	IsAnonymous bool     `json:"is_anonymous"`
+	IsFollowing int64    `json:"is_following"`
+	Thumbnails  []string `json:"thumbnails"`
+	Sources     struct {
+		Hls  string `json:"hls"`
+		Dash string `json:"dash"`
+		Aac  string `json:"aac"`
+	} `json:"sources"`
+	Vote      string    `json:"vote"`
+	Reaction  string    `json:"reaction"`
+	CreatedOn time.Time `json:"created_on"`
+	Counts    struct {
 		Views     int64 `json:"views"`
 		Upvotes   int64 `json:"upvotes"`
 		Downvotes int64 `json:"downvotes"`
@@ -113,17 +140,24 @@ type Opinion struct {
 type Opinion_ struct {
 	ID        int64 `json:"id"`
 	CreatedBy struct {
-		Username    string `json:"username"`
-		FullName    string `json:"full_name"`
-		Picture     string `json:"picture"`
-		IsSelf      string `json:"is_self"`
-		IsFollowing bool   `json:"is_following"`
+		Username string `json:"username"`
+		FullName string `json:"full_name"`
+		Picture  string `json:"picture"`
+		IsSelf   string `json:"is_self"`
 	} `json:"created_by"`
-	IsAnonymous  bool      `json:"is_anonymous"`
-	ThumbnailURL string    `json:"thumbnail_url"`
-	Reaction     string    `json:"reaction"`
-	IsFollowing  bool      `json:"is_following"`
-	CreatedOn    time.Time `json:"created_on"`
+	IsAnonymous bool      `json:"is_anonymous"`
+	Thumbnails  []string  `json:"thumbnails"`
+	Reaction    string    `json:"reaction"`
+	IsFollowing bool      `json:"is_following"`
+	CreatedOn   time.Time `json:"created_on"`
+	Vote        string    `json:"vote"`
+	Counts      struct {
+		Views     int64 `json:"views"`
+		Upvotes   int64 `json:"upvotes"`
+		Downvotes int64 `json:"downvotes"`
+		Followers int64 `json:"followers"`
+		Replies   int64 `json:"replies"`
+	} `json:"counts"`
 }
 
 type Category_ struct {

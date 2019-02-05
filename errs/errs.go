@@ -20,4 +20,6 @@ var (
 	UserNotFound                   = errors.New("User not found.")
 	NoPasswordSet                  = errors.New("A password is not set for this account. Login using social account and set a password for future login.")
 	PasswordNotMatch               = errors.New("Password does not match.")
+	UserFollowAlreadyFollowing     = errors.New("You are already following this user.")
+	UserUnfollowNotFollowing       = errors.New("You do not follow this user.")
 )

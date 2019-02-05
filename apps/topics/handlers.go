@@ -168,7 +168,7 @@ func (a *App) Opinions(w http.ResponseWriter, r *http.Request) {
 	topicID := ctx.Value(middleware.TopicKeys("topic_id")).(int64)
 	userID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
 
-	opinions := []types.Opinion_{}
+	opinions := []types.Opinion{}
 	var err error
 	if auth {
 		opinions, err = a.AuthOpinionsQuery(userID, topicID)

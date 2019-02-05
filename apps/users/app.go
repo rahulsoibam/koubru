@@ -15,5 +15,5 @@ type App struct {
 	DB         *sql.DB
 	Cache      *redis.Client
 	Middleware *middleware.Middleware
-	Logger     *logger.Logger
+	Log        *logger.Logger
 }
