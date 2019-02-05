@@ -3,7 +3,7 @@ package authutils
 import (
 	"strings"
 
-	"github.com/rahulsoibam/koubru-prod-api/errs"
+	"github.com/rahulsoibam/koubru/errs"
 )
 
 // HeaderToTokenString returns token from the Authorization header

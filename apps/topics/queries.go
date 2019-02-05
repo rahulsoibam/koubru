@@ -7,7 +7,7 @@ import (
 
 	"github.com/lib/pq"
 
-	"github.com/rahulsoibam/koubru-prod-api/types"
+	"github.com/rahulsoibam/koubru/types"
 )
 
 func (a *App) AuthCreateQuery(userID int64, t types.NewTopic) (types.Topic, error) {

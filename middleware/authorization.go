@@ -5,11 +5,11 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/rahulsoibam/koubru-prod-api/authutils"
-	"github.com/rahulsoibam/koubru-prod-api/errs"
+	"github.com/rahulsoibam/koubru/authutils"
+	"github.com/rahulsoibam/koubru/errs"
 
 	"github.com/go-redis/redis"
-	"github.com/rahulsoibam/koubru-prod-api/utils"
+	"github.com/rahulsoibam/koubru/utils"
 )
 
 type AuthKeys string

@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/rahulsoibam/koubru-prod-api/errs"
-	"github.com/rahulsoibam/koubru-prod-api/types"
+	"github.com/rahulsoibam/koubru/errs"
+	"github.com/rahulsoibam/koubru/types"
 
 	"github.com/go-chi/chi"
-	"github.com/rahulsoibam/koubru-prod-api/utils"
+	"github.com/rahulsoibam/koubru/utils"
 )
 
 type TopicKeys string

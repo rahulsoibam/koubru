@@ -3,7 +3,7 @@ package categories
 import (
 	"database/sql"
 
-	"github.com/rahulsoibam/koubru-prod-api/types"
+	"github.com/rahulsoibam/koubru/types"
 )
 
 // DONE

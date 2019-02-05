@@ -3,8 +3,8 @@ package topics
 import (
 	"database/sql"
 
-	"github.com/rahulsoibam/koubru-prod-api/logger"
-	"github.com/rahulsoibam/koubru-prod-api/middleware"
+	"github.com/rahulsoibam/koubru/logger"
+	"github.com/rahulsoibam/koubru/middleware"
 )
 
 // App for topics

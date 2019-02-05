@@ -13,14 +13,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/rahulsoibam/koubru-prod-api/errs"
+	"github.com/rahulsoibam/koubru/errs"
 
 	"github.com/lib/pq"
-	"github.com/rahulsoibam/koubru-prod-api/middleware"
+	"github.com/rahulsoibam/koubru/middleware"
 
-	"github.com/rahulsoibam/koubru-prod-api/authutils"
-	"github.com/rahulsoibam/koubru-prod-api/authutils/googlejwt"
-	"github.com/rahulsoibam/koubru-prod-api/utils"
+	"github.com/rahulsoibam/koubru/authutils"
+	"github.com/rahulsoibam/koubru/authutils/googlejwt"
+	"github.com/rahulsoibam/koubru/utils"
 )
 
 func (a *App) authenticate(userID int64, bearerToken string, userAgent string) (*Token, error) {

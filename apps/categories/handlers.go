@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/rahulsoibam/koubru-prod-api/errs"
+	"github.com/rahulsoibam/koubru/errs"
 
 	"github.com/lib/pq"
-	"github.com/rahulsoibam/koubru-prod-api/middleware"
-	"github.com/rahulsoibam/koubru-prod-api/types"
-	"github.com/rahulsoibam/koubru-prod-api/utils"
+	"github.com/rahulsoibam/koubru/middleware"
+	"github.com/rahulsoibam/koubru/types"
+	"github.com/rahulsoibam/koubru/utils"
 )
 
 // List all categories

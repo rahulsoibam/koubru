@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/go-redis/redis"
-	"github.com/rahulsoibam/koubru-prod-api/utils"
+	"github.com/rahulsoibam/koubru/utils"
 	"golang.org/x/oauth2/jws"
 )
 

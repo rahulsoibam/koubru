@@ -4,7 +4,7 @@ import (
 	"database/sql"
 
 	"github.com/go-redis/redis"
-	"github.com/rahulsoibam/koubru-prod-api/logger"
+	"github.com/rahulsoibam/koubru/logger"
 )
 
 type Middleware struct {

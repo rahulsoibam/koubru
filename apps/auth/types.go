@@ -7,7 +7,7 @@ import (
 
 	"github.com/go-redis/redis"
 
-	"github.com/rahulsoibam/koubru-prod-api/utils"
+	"github.com/rahulsoibam/koubru/utils"
 )
 
 // Token struct for storing token

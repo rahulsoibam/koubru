@@ -3,11 +3,11 @@ package auth
 import (
 	"database/sql"
 
-	"github.com/rahulsoibam/koubru-prod-api/logger"
+	"github.com/rahulsoibam/koubru/logger"
 
 	"github.com/go-redis/redis"
-	"github.com/rahulsoibam/koubru-prod-api/authutils"
-	"github.com/rahulsoibam/koubru-prod-api/middleware"
+	"github.com/rahulsoibam/koubru/authutils"
+	"github.com/rahulsoibam/koubru/middleware"
 )
 
 // App for auth

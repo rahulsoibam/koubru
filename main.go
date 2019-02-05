@@ -11,9 +11,9 @@ import (
 
 	sendgrid "github.com/sendgrid/sendgrid-go"
 
-	"github.com/rahulsoibam/koubru-prod-api/authutils"
-	"github.com/rahulsoibam/koubru-prod-api/logger"
-	koubrumiddleware "github.com/rahulsoibam/koubru-prod-api/middleware"
+	"github.com/rahulsoibam/koubru/authutils"
+	"github.com/rahulsoibam/koubru/logger"
+	koubrumiddleware "github.com/rahulsoibam/koubru/middleware"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -25,16 +25,16 @@ import (
 	"github.com/sony/sonyflake"
 
 	// Koubru Apps
-	"github.com/rahulsoibam/koubru-prod-api/apps/auth"
-	"github.com/rahulsoibam/koubru-prod-api/apps/categories"
-	"github.com/rahulsoibam/koubru-prod-api/apps/countries"
-	"github.com/rahulsoibam/koubru-prod-api/apps/explore"
-	"github.com/rahulsoibam/koubru-prod-api/apps/feed"
-	"github.com/rahulsoibam/koubru-prod-api/apps/opinions"
-	"github.com/rahulsoibam/koubru-prod-api/apps/search"
-	"github.com/rahulsoibam/koubru-prod-api/apps/topics"
-	"github.com/rahulsoibam/koubru-prod-api/apps/user"
-	"github.com/rahulsoibam/koubru-prod-api/apps/users"
+	"github.com/rahulsoibam/koubru/apps/auth"
+	"github.com/rahulsoibam/koubru/apps/categories"
+	"github.com/rahulsoibam/koubru/apps/countries"
+	"github.com/rahulsoibam/koubru/apps/explore"
+	"github.com/rahulsoibam/koubru/apps/feed"
+	"github.com/rahulsoibam/koubru/apps/opinions"
+	"github.com/rahulsoibam/koubru/apps/search"
+	"github.com/rahulsoibam/koubru/apps/topics"
+	"github.com/rahulsoibam/koubru/apps/user"
+	"github.com/rahulsoibam/koubru/apps/users"
 
 	_ "github.com/joho/godotenv/autoload"
 	_ "github.com/lib/pq"

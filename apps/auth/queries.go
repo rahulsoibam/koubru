@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"github.com/rahulsoibam/koubru-prod-api/authutils/googlejwt"
+	"github.com/rahulsoibam/koubru/authutils/googlejwt"
 )
 
 func (a *App) dbGetUserIDUsingUsername(username string) (int64, error) {

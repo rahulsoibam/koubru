@@ -4,7 +4,7 @@ import (
 	"database/sql"
 
 	"github.com/lib/pq"
-	"github.com/rahulsoibam/koubru-prod-api/types"
+	"github.com/rahulsoibam/koubru/types"
 )
 
 func (a *App) AuthGetQuery(userID int64) (types.User, error) {
