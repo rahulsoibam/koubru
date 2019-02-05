@@ -102,7 +102,6 @@ func (a *App) AuthCreateQuery(userID int64, c types.NewCategory) (types.Category
 	}
 
 	// TODO GET CATEGORY PAGE
-	cres := types.Category{}
 	cres, err = a.AuthGetQuery(userID, categoryID)
 	if err != nil {
 		tx.Rollback()
