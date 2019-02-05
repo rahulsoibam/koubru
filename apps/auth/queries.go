@@ -53,7 +53,7 @@ func (a *App) dbStorePassword(userID int64, encodedHash string) error {
 func (a *App) dbGetUserIDUsingFacebook(facebookID string) (int64, error) {
 	var err error
 	var userID int64
-	err = a.DB.QueryRow("SELECT user_id FROM KUser WHERE facebook=$1", facebookID).Scan(&userID)
+	err = a.DB.QueryRow("SELECT user_id FROM KUser WHERE facebook_uid=$1", facebookID).Scan(&userID)
 	if err != nil {
 		return 0, err
 	}
@@ -63,7 +63,7 @@ func (a *App) dbGetUserIDUsingFacebook(facebookID string) (int64, error) {
 func (a *App) dbGetUserIDUsingGoogle(googleID string) (int64, error) {
 	var err error
 	var userID int64
-	err = a.DB.QueryRow("SELECT user_id FROM KUser WHERE google=$1", googleID).Scan(&userID)
+	err = a.DB.QueryRow("SELECT user_id FROM KUser WHERE google_uid=$1", googleID).Scan(&userID)
 	if err != nil {
 		return 0, err
 	}
@@ -73,7 +73,7 @@ func (a *App) dbGetUserIDUsingGoogle(googleID string) (int64, error) {
 func (a *App) dbRegisterUserUsingFacebook(fu FacebookUser, username string) (int64, error) {
 	var err error
 	var userID int64
-	err = a.DB.QueryRow("INSERT INTO KUser (username, full_name, photo_url, facebook) VALUES ($1, $2, $3, $4) RETURNING user_id", username, fu.Name, fu.Picture.Data.URL, fu.ID).Scan(&userID)
+	err = a.DB.QueryRow("INSERT INTO KUser (username, full_name, photo_url, facebook_uid) VALUES ($1, $2, $3, $4) RETURNING user_id", username, fu.Name, fu.Picture.Data.URL, fu.ID).Scan(&userID)
 	if err != nil {
 		return 0, err
 	}
@@ -83,7 +83,7 @@ func (a *App) dbRegisterUserUsingFacebook(fu FacebookUser, username string) (int
 func (a *App) dbRegisterUserUsingGoogle(cs *googlejwt.ClaimSet, username string) (int64, error) {
 	var err error
 	var userID int64
-	err = a.DB.QueryRow("INSERT INTO KUser (username, full_name, photo_url, google) VALUES ($1, $2, $3, $4) RETURNING user_id", username, cs.Name, cs.Picture, cs.Sub).Scan(&userID)
+	err = a.DB.QueryRow("INSERT INTO KUser (username, full_name, photo_url, google_uid) VALUES ($1, $2, $3, $4) RETURNING user_id", username, cs.Name, cs.Picture, cs.Sub).Scan(&userID)
 	if err != nil {
 		return 0, err
 	}
