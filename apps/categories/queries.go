@@ -166,7 +166,7 @@ func (a *App) GetQuery(categoryID int64) (types.Category, error) {
         c.category_id=$1
 	`
 
-	err := a.DB.QueryRow(sqlQuery, categoryID).Scan(&c.ID, &c.Name, &c.CreatedOn, &c.CreatedBy.Username, &c.CreatedBy.FullName, &c.CreatedBy.Picture, &c.IsFollowing)
+	err := a.DB.QueryRow(sqlQuery, categoryID).Scan(&c.ID, &c.Name, &c.CreatedOn, &c.CreatedBy.Username, &c.CreatedBy.FullName, &c.CreatedBy.Picture, &c.IsFollowing, &c.Counts.Topics, &c.Counts.Followers)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return c, nil
