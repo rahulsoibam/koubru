@@ -37,7 +37,26 @@ func (a *App) Create(w http.ResponseWriter, r *http.Request) {
 
 // Get to get details of an opinion
 func (a *App) Get(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Get opinion"))
+	ctx := r.Context()
+	userID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
+	opinionID := ctx.Value(middleware.OpinionKeys("opinion_id")).(int64)
+
+	opinion := types.Opinion{}
+	var err error
+
+	if auth {
+		opinion, err = a.AuthGetQuery(userID, opinionID)
+	} else {
+		opinion, err = a.GetQuery(opinionID)
+	}
+
+	if err != nil {
+		a.Log.Errorln(err)
+		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
+		return
+	}
+
+	utils.RespondWithJSON(w, http.StatusOK, opinion)
 }
 
 // Delete to delete an opinion
