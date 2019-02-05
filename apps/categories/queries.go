@@ -21,7 +21,7 @@ func (a *App) ListQuery(q string, limit int, offset int) ([]types.Category_, err
 	FROM category c FULL JOIN category_follower cf ON c.category_id=cf.category_id
 	WHERE name LIKE $1
 	GROUP BY c.category_id
-	ORDER BY (select count(cf.follower_id)) DESC;
+	ORDER BY (select count(cf.follower_id)) DESC
 	LIMIT $3 OFFSET $4
 	`
 	rows, err := a.DB.Query(sqlQuery, q, limit, offset)
