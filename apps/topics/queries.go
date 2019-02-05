@@ -107,7 +107,7 @@ func (a *App) GetQuery(topicID int64) (types.Topic, error) {
     group by t.topic_id, u.user_id
 	`
 
-	err := a.DB.QueryRow(sqlQuery, topicID).Scan(&t.ID, &t.Title, &t.Details, &t.CreatedOn, &t.CreatedBy.Username, &t.CreatedBy.FullName, &t.CreatedBy.Picture, &t.CreatedBy.IsSelf, (*[]byte)(&t.Categories), &t.IsFollowing, &t.CreatedOn, &t.Counts.Followers, &t.Counts.Opinions)
+	err := a.DB.QueryRow(sqlQuery, topicID).Scan(&t.ID, &t.Title, &t.Details, &t.CreatedBy.Username, &t.CreatedBy.FullName, &t.CreatedBy.Picture, &t.CreatedBy.IsSelf, (*[]byte)(&t.Categories), &t.IsFollowing, &t.CreatedOn, &t.Counts.Followers, &t.Counts.Opinions)
 	if t.Categories == nil {
 		t.Categories = json.RawMessage("[]")
 	}
