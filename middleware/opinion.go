@@ -27,7 +27,7 @@ func (m *Middleware) OpinionCtx(next http.Handler) http.Handler {
 			return
 		}
 		// err = m.DB.QueryRow("select exists(select 1 from category where category_id=$1", categoryID).Scan(&exists)
-		err = m.DB.QueryRow("select opinion_id, topic_id, creator_id from topic where topic_id = $1", opinionID).Scan(&ctxOpinion.ID, &ctxOpinion.TopicID, &ctxOpinion.CreatorID)
+		err = m.DB.QueryRow("select opinion_id, topic_id, creator_id from opinion where opinion_id = $1", opinionID).Scan(&ctxOpinion.ID, &ctxOpinion.TopicID, &ctxOpinion.CreatorID)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				m.Log.Infoln(err)
