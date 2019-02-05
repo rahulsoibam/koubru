@@ -234,7 +234,7 @@ func (a *App) AuthOpinionsQuery(userID int64, topicID int64) ([]types.Opinion, e
     FROM
         opinion o INNER JOIN topic t USING(topic_id)
         INNER JOIN kuser u on o.creator_id=u.user_id
-        LEFT JOIN Opinion_Vote ov on ov.opinion_id=o.opinion_id and voter_id=1967600534613394434
+        LEFT JOIN Opinion_Vote ov on ov.opinion_id=o.opinion_id and voter_id=$1
         LEFT JOIN Topic_Category tc on tc.topic_id = t.topic_id
         LEFT JOIN Category c on c.category_id=tc.category_id
     WHERE o.topic_id=$2

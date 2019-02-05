@@ -5,10 +5,11 @@ import "github.com/go-chi/chi"
 // Routes for opinion
 func (a App) Routes() chi.Router {
 	r := chi.NewRouter()
-	// r.Group(func(r chi.Router) {
-	// 	r.Use(a.Middleware.OptionalAuthorization)
-	// 	r.Get("/", a.List)
-	// })
+	r.Group(func(r chi.Router) {
+		r.Use(a.Middleware.OptionalAuthorization)
+		r.Use(a.Middleware.Pagination)
+		r.Get("/", a.List)
+	})
 	r.Group(func(r chi.Router) {
 		r.Use(a.Middleware.RequireAuthorization)
 		r.Post("/", a.Create) // Reply directly to topic
