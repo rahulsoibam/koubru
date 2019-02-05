@@ -77,7 +77,12 @@ func main() {
 	})
 	fa := feed.App{}
 	r.Mount("/", fa.Routes())
-	oa := opinions.App{}
+	oa := opinions.App{
+		DB:         db,
+		Cache:      cache,
+		Middleware: koubruMiddleware,
+		Log:        logg,
+	}
 	r.Mount("/opinions", oa.Routes())
 	aa := auth.App{
 		AuthCache:  authCache,
