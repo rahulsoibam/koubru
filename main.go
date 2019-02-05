@@ -68,8 +68,6 @@ func main() {
 	initializeSendgridClient()
 	initializeKoubruMiddleware()
 	r := chi.NewRouter()
-	r.Use(middleware.RequestID)
-	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
@@ -237,5 +235,7 @@ func initializeSendgridClient() {
 func initializeKoubruMiddleware() {
 	koubruMiddleware = &koubrumiddleware.Middleware{
 		AuthCache: authCache,
+		DB:        db,
+		Log:       logg,
 	}
 }
