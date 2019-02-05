@@ -189,7 +189,7 @@ func (a *App) AuthFollowersQuery(userID int64, categoryID int64) ([]types.User_,
         CASE WHEN EXISTS (SELECT 1 FROM user_follower uf where uf.user_id=u.user_id AND uf.follower_id=$1) THEN 1 ELSE 0 END AS is_following
     FROM
         KUser u INNER JOIN Category_Follower cf ON u.user_id = cf.follower_id
-    WHERE cf.category_id=$2;
+    WHERE cf.category_id=$2
     ORDER BY is_self desc, is_following desc
 	`
 
