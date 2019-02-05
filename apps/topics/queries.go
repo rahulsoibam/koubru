@@ -62,7 +62,8 @@ func (a *App) AuthGetQuery(userID int64, topicID int64) (types.Topic, error) {
         u.picture,
         case when t.creator_id=$1 then 1 else 0 end as is_self,
         coalesce(json_agg(json_build_object('id',c.category_id,'name',c.name)) filter (where c.category_id is not null or c.name is not null), '[]'::json),
-        case when exists (select 1 from topic_follower where topic_id=t.topic_id and follower_id=$1) then 1 else 0 end as is_following,
+		case when exists (select 1 from topic_follower where topic_id=t.topic_id and follower_id=$1) then 1 else 0 end as is_following,
+		t.created_on,
         (select count(*) from topic_follower where topic_id=t.topic_id) as followers_count,
         (select count(*) from opinion where topic_id=t.topic_id) as opinions_count
     FROM
@@ -74,7 +75,7 @@ func (a *App) AuthGetQuery(userID int64, topicID int64) (types.Topic, error) {
 	
 	`
 
-	err := a.DB.QueryRow(sqlQuery, userID, topicID).Scan(&t.ID, &t.Title, &t.Details, &t.CreatedOn, &t.CreatedBy.Username, &t.CreatedBy.FullName, &t.CreatedBy.Picture, (*[]byte)(&t.Categories), &t.IsFollowing, &t.Counts.Followers, &t.Counts.Opinions)
+	err := a.DB.QueryRow(sqlQuery, topicID).Scan(&t.ID, &t.Title, &t.Details, &t.CreatedOn, &t.CreatedBy.Username, &t.CreatedBy.FullName, &t.CreatedBy.Picture, &t.CreatedBy.IsSelf, (*[]byte)(&t.Categories), &t.IsFollowing, &t.CreatedOn, &t.Counts.Followers, &t.Counts.Opinions)
 	if err != nil {
 		// check for sql.ErrNoRows and return 404 if that is the case
 		return t, err
@@ -88,13 +89,14 @@ func (a *App) GetQuery(topicID int64) (types.Topic, error) {
 	SELECT
         t.topic_id,
         t.title,
-        t.details,
+		t.details,
         u.username,
         u.full_name,
         u.picture,
         case when t.creator_id=$1 then 1 else 0 end as is_self,
         coalesce(json_agg(json_build_object('id',c.category_id,'name',c.name)) filter (where c.category_id is not null or c.name is not null), '[]'::json),
-        0 as is_following,
+		0 as is_following,
+		t.created_on,
         (select count(*) from topic_follower where topic_id=t.topic_id) as followers_count,
         (select count(*) from opinion where topic_id=t.topic_id) as opinions_count
     FROM
@@ -105,7 +107,7 @@ func (a *App) GetQuery(topicID int64) (types.Topic, error) {
     group by t.topic_id, u.user_id
 	`
 
-	err := a.DB.QueryRow(sqlQuery, topicID).Scan(&t.ID, &t.Title, &t.Details, &t.CreatedOn, &t.CreatedBy.Username, &t.CreatedBy.FullName, &t.CreatedBy.Picture, (*[]byte)(&t.Categories), &t.IsFollowing, &t.Counts.Followers, &t.Counts.Opinions)
+	err := a.DB.QueryRow(sqlQuery, topicID).Scan(&t.ID, &t.Title, &t.Details, &t.CreatedOn, &t.CreatedBy.Username, &t.CreatedBy.FullName, &t.CreatedBy.Picture, &t.CreatedBy.IsSelf, (*[]byte)(&t.Categories), &t.IsFollowing, &t.CreatedOn, &t.Counts.Followers, &t.Counts.Opinions)
 	if t.Categories == nil {
 		t.Categories = json.RawMessage("[]")
 	}
