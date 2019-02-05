@@ -22,7 +22,7 @@ func (a *App) ListQuery(q string, limit int, offset int) ([]types.Category_, err
 	WHERE name LIKE $1
 	GROUP BY c.category_id
 	ORDER BY (select count(cf.follower_id)) DESC
-	LIMIT $3 OFFSET $4
+	LIMIT $2 OFFSET $3
 	`
 	rows, err := a.DB.Query(sqlQuery, q, limit, offset)
 	if err == sql.ErrNoRows {
