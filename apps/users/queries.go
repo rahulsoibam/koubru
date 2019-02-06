@@ -3,6 +3,7 @@ package users
 import (
 	"context"
 	"database/sql"
+	"log"
 
 	"github.com/lib/pq"
 	"github.com/rahulsoibam/koubru/middleware"
@@ -15,6 +16,7 @@ func (a *App) ListQuery(ctx context.Context) ([]types.SearchUser, error) {
 	offset := ctx.Value(middleware.PaginationKeys("db_offset")).(int)
 
 	us := []types.SearchUser{}
+	q = "%" + q
 	sqlQuery := `
 	SELECT
 		u.username,
@@ -22,12 +24,13 @@ func (a *App) ListQuery(ctx context.Context) ([]types.SearchUser, error) {
 		u.picture
 	FROM Kuser u
 	WHERE u.username LIKE $1 OR u.full_name LIKE $1
-	ORDER BY t.created_on DESC
+	ORDER BY u.created_on DESC
 	LIMIT $2 OFFSET $3
 	`
 	rows, err := a.DB.Query(sqlQuery, q, limit, offset)
 	if err != nil {
 		if err != nil {
+			log.Println(err)
 			return us, nil
 		}
 		return us, err
