@@ -67,10 +67,12 @@ func (a *App) AuthCreateQuery(userID int64, t types.NewTopic) (types.Topic, erro
 
 	for i := 0; i < 3; i++ {
 		fmt.Println(t.Categories[i])
-		_, err = tx.Exec("INSERT INTO Topic_Category (topic_id, category_id) VALUES ($1, $2)", topicID, t.Categories[i])
-		if err != nil {
-			tx.Rollback()
-			return tres, err
+		if t.Categories[i] != 0 {
+			_, err = tx.Exec("INSERT INTO Topic_Category (topic_id, category_id) VALUES ($1, $2)", topicID, t.Categories[i])
+			if err != nil {
+				tx.Rollback()
+				return tres, err
+			}
 		}
 	}
 	_, err = tx.Exec("INSERT INTO Topic_Follower (topic_id, follower_id) VALUES ($1, $2)", topicID, userID)
