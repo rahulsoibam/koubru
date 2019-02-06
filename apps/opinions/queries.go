@@ -180,7 +180,7 @@ func (a *App) AuthGetQuery(userID int64, opinionID int64) (types.Opinion, error)
         LEFT JOIN Topic_Category tc on tc.topic_id = t.topic_id
 		LEFT JOIN Category c on c.category_id=tc.category_id
 	WHERE o.opinion_id=$2
-    GROUP BY o.opinion_id, u.user_id, t.topic_id, views
+    GROUP BY o.opinion_id, u.user_id, t.topic_id, views, ov.vote
 	`
 
 	err := a.DB.QueryRow(sqlQuery, userID, opinionID).Scan(&o.ID, &o.CreatedBy.Username, &o.CreatedBy.FullName, &o.CreatedBy.Picture, &o.CreatedBy.IsSelf, &o.Topic.ID, &o.Topic.Title, &o.Topic.Details, (*[]byte)(&o.Topic.Categories), &o.Topic.IsFollowing, &o.IsAnonymous, &o.IsFollowing, pq.Array(&o.Thumbnails), &o.Sources.Hls, &o.Sources.Dash, &o.Sources.Aac, &o.Vote, &o.Reaction, &o.CreatedOn, &o.Counts.Views, &o.Counts.Upvotes, &o.Counts.Downvotes, &o.Counts.Followers, &o.Counts.Replies)
