@@ -3,6 +3,7 @@ package opinions
 import (
 	"bytes"
 	"io"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -154,7 +155,24 @@ func (a *App) Unfollow(w http.ResponseWriter, r *http.Request) {
 
 // Replies to reply to an opinion
 func (a *App) Replies(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Get replies of opinion"))
+	ctx := r.Context()
+	opinionID := ctx.Value(middleware.OpinionKeys("opinion_id")).(int64)
+	userID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
+
+	replies := []types.Opinion{}
+	var err error
+	if auth {
+		replies, err = a.AuthRepliesQuery(userID, opinionID)
+	} else {
+		replies, err = a.RepliesQuery(opinionID)
+	}
+	if err != nil {
+		log.Println(err)
+		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
+		return
+	}
+
+	utils.RespondWithJSON(w, http.StatusOK, replies)
 }
 
 // Report to report an opinion

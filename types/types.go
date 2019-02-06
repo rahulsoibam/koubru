@@ -208,7 +208,7 @@ func (no *NewOpinion) Validate() error {
 	if no.TopicID == 0 {
 		return errors.New("Topic ID is required")
 	}
-	if utils.IsValidOpinion(no.Reaction) {
+	if !utils.IsValidOpinion(no.Reaction) {
 		return errors.New("Not a valid reaction")
 	}
 	if no.Mp4 == "" {
