@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -30,11 +31,11 @@ func (m *Middleware) RequireAuthorization(next http.Handler) http.Handler {
 		// Get user id from redis session store cache
 		response, err := m.AuthCache.Get(authToken).Result()
 		if err == redis.Nil {
-			m.Log.Errorln(err)
+			log.Println(err)
 			utils.RespondWithError(w, http.StatusUnauthorized, errs.Unauthorized)
 			return
 		} else if err != nil {
-			m.Log.Errorln(err)
+			log.Println(err)
 			// If there is an error fetching from the cache, return an internal server error
 			utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 			return

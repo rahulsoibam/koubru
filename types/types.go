@@ -120,7 +120,7 @@ type Opinion struct {
 		IsFollowing bool            `json:"is_following"`
 	} `json:"topic"`
 	IsAnonymous bool     `json:"is_anonymous"`
-	IsFollowing int64    `json:"is_following"`
+	IsFollowing bool     `json:"is_following"`
 	Thumbnails  []string `json:"thumbnails"`
 	Sources     struct {
 		Hls  string `json:"hls"`
@@ -206,13 +206,34 @@ type NewOpinion struct {
 
 func (no *NewOpinion) Validate() error {
 	if no.TopicID == 0 {
-		return errors.New("Topic ID is required")
+		return errors.New("Topic ID is required.")
 	}
 	if !utils.IsValidOpinion(no.Reaction) {
-		return errors.New("Not a valid reaction")
+		return errors.New("Not a valid reaction.")
 	}
 	if no.Mp4 == "" {
-		return errors.New("Problem with upload")
+		return errors.New("Problem with upload.")
+	}
+	return nil
+}
+
+type NewReply struct {
+	TopicID     int64
+	Reaction    string
+	IsAnonymous bool
+	Mp4         string
+	ParentID    int64
+}
+
+func (nr *NewReply) Validate() error {
+	if nr.TopicID == 0 {
+		return errors.New("Topic ID is required.")
+	}
+	if !utils.IsValidOpinion(nr.Reaction) {
+		return errors.New("Not a valid opinion")
+	}
+	if nr.Mp4 == "" {
+		return errors.New("Problem with upload.")
 	}
 	return nil
 }

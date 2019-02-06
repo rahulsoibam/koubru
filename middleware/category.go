@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"database/sql"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -33,7 +34,7 @@ func (m *Middleware) CategoryID(next http.Handler) http.Handler {
 				m.Log.Infoln(err)
 				utils.RespondWithError(w, http.StatusNotFound, errs.CategoryNotFound)
 			}
-			m.Log.Errorln(err)
+			log.Println(err)
 			utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 			return
 		}

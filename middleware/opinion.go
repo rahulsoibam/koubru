@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"database/sql"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -34,7 +35,7 @@ func (m *Middleware) OpinionCtx(next http.Handler) http.Handler {
 				utils.RespondWithError(w, http.StatusNotFound, errs.OpinionNotFound)
 				return
 			}
-			m.Log.Errorln(err)
+			log.Println(err)
 			utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 			return
 		}

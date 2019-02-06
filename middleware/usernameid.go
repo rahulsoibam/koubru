@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"database/sql"
+	"log"
 	"net/http"
 
 	"github.com/go-chi/chi"
@@ -26,7 +27,7 @@ func (m *Middleware) UsernameID(next http.Handler) http.Handler {
 				utils.RespondWithError(w, http.StatusNotFound, errs.UserNotFound)
 				return
 			}
-			m.Log.Errorln(err)
+			log.Println(err)
 			utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 			return
 		}

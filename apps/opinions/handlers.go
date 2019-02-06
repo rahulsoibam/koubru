@@ -43,7 +43,7 @@ func (a *App) Create(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithError(w, http.StatusUnauthorized, errs.Unauthorized)
 		return
 	}
-	// Max upload size
+	// Max upload size 200MB
 	r.Body = http.MaxBytesReader(w, r.Body, 200<<20)
 	defer r.Body.Close()
 	reader, err := r.MultipartReader()
@@ -53,7 +53,7 @@ func (a *App) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	no := types.NewOpinion{}
+	nr := types.NewReply{}
 	for {
 		part, err := reader.NextPart()
 		if err == io.EOF {
@@ -61,7 +61,7 @@ func (a *App) Create(w http.ResponseWriter, r *http.Request) {
 		} else if part.FormName() == "topic_id" {
 			buf := new(bytes.Buffer)
 			buf.ReadFrom(part)
-			no.TopicID, err = strconv.ParseInt(buf.String(), 10, 64)
+			nr.TopicID, err = strconv.ParseInt(buf.String(), 10, 64)
 			if err != nil {
 				log.Println(err)
 				utils.RespondWithError(w, http.StatusBadRequest, errs.BadRequest)
@@ -70,11 +70,11 @@ func (a *App) Create(w http.ResponseWriter, r *http.Request) {
 		} else if part.FormName() == "reaction" {
 			buf := new(bytes.Buffer)
 			buf.ReadFrom(part)
-			no.Reaction = buf.String()
+			nr.Reaction = buf.String()
 		} else if part.FormName() == "is_anonymous" {
 			buf := new(bytes.Buffer)
 			buf.ReadFrom(part)
-			no.IsAnonymous, err = strconv.ParseBool(buf.String())
+			nr.IsAnonymous, err = strconv.ParseBool(buf.String())
 		} else if part.FormName() == "file" {
 			uuid, err := a.Flake.NextID()
 			if err != nil {
@@ -82,7 +82,7 @@ func (a *App) Create(w http.ResponseWriter, r *http.Request) {
 				utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 			}
 			filename := strconv.FormatUint(uuid, 10) + ".mp4"
-			no.Mp4, err = a.S3UploadOpinion(part, filename)
+			nr.Mp4, err = a.S3UploadOpinion(part, filename)
 			if err != nil {
 				log.Println(err)
 				utils.RespondWithError(w, http.StatusBadRequest, errs.BadRequest)
@@ -91,14 +91,14 @@ func (a *App) Create(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	// Validate
-	if err := no.Validate(); err != nil {
-		log.Println(no, err)
+	if err := nr.Validate(); err != nil {
+		log.Println(nr, err)
 		utils.RespondWithError(w, http.StatusBadRequest, err)
 		return
 	}
 
 	opinion := types.Opinion{}
-	opinion, err = a.AuthCreateQuery(userID, no)
+	opinion, err = a.AuthCreateReplyQuery(userID, nr)
 
 	if err != nil {
 		log.Println(err)
@@ -123,6 +123,76 @@ func (a *App) Get(w http.ResponseWriter, r *http.Request) {
 	} else {
 		opinion, err = a.GetQuery(opinionID)
 	}
+
+	if err != nil {
+		log.Println(err)
+		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
+		return
+	}
+
+	utils.RespondWithJSON(w, http.StatusOK, opinion)
+}
+
+func (a *App) Reply(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
+	ctxOpinon := ctx.Value(middleware.OpinionKeys("ctx_opinion")).(types.ContextOpinion)
+	if !auth {
+		log.Println(ctx)
+		utils.RespondWithError(w, http.StatusUnauthorized, errs.Unauthorized)
+		return
+	}
+
+	// Max upload size 200MB
+	r.Body = http.MaxBytesReader(w, r.Body, 200<<20)
+	defer r.Body.Close()
+	reader, err := r.MultipartReader()
+	if err != nil {
+		log.Println(err)
+		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
+		return
+	}
+
+	nr := types.NewReply{}
+	nr.ParentID = ctxOpinon.ID
+	nr.TopicID = ctxOpinon.TopicID
+	for {
+		part, err := reader.NextPart()
+		if err == io.EOF {
+			break
+		} else if part.FormName() == "reaction" {
+			buf := new(bytes.Buffer)
+			buf.ReadFrom(part)
+			nr.Reaction = buf.String()
+		} else if part.FormName() == "is_anonymous" {
+			buf := new(bytes.Buffer)
+			buf.ReadFrom(part)
+			nr.IsAnonymous, err = strconv.ParseBool(buf.String())
+		} else if part.FormName() == "file" {
+			uuid, err := a.Flake.NextID()
+			if err != nil {
+				log.Println(err)
+				utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
+			}
+			filename := strconv.FormatUint(uuid, 10) + ".mp4"
+			nr.Mp4, err = a.S3UploadOpinion(part, filename)
+			if err != nil {
+				log.Println(err)
+				utils.RespondWithError(w, http.StatusBadRequest, errs.BadRequest)
+				return
+			}
+		}
+	}
+
+	// Validate
+	if err := nr.Validate(); err != nil {
+		log.Println(nr, err)
+		utils.RespondWithError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	opinion := types.Opinion{}
+	opinion, err = a.AuthCreateReplyQuery(userID, nr)
 
 	if err != nil {
 		log.Println(err)
@@ -187,8 +257,4 @@ func (a *App) Vote(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) Breadcrumbs(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Breadcrumbs of an opinion"))
-}
-
-func (a *App) Reply(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Direct replies of an opinion"))
 }
