@@ -476,7 +476,7 @@ func (a *App) BreadcrumbsQuery(opinionID int64) ([]types.Breadcrumb, error) {
     )
     SELECT
         a.opinion_id,
-        a.created_on
+        a.created_on,
         u.username,
         u.full_name,
         u.picture,
