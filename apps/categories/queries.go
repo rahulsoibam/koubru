@@ -1,16 +1,22 @@
 package categories
 
 import (
+	"context"
 	"database/sql"
+
+	"github.com/rahulsoibam/koubru/middleware"
 
 	"github.com/rahulsoibam/koubru/types"
 )
 
 // DONE
-func (a *App) ListQuery(q string, limit int, offset int) ([]types.Category_, error) {
+func (a *App) ListQuery(ctx context.Context) ([]types.Category_, error) {
+	q := ctx.Value(middleware.SearchKeys("q")).(string)
+	limit := ctx.Value(middleware.PaginationKeys("per_page")).(int)
+	offset := ctx.Value(middleware.PaginationKeys("db_offset")).(int)
+
 	var err error
 	cs := []types.Category_{}
-	q = q + "%"
 
 	// Query to list all categories by follower count
 	sqlQuery := `
@@ -44,7 +50,10 @@ func (a *App) ListQuery(q string, limit int, offset int) ([]types.Category_, err
 }
 
 // DONE
-func (a *App) AuthListQuery(userID int64, q string, limit int, offset int) ([]types.Category_, error) {
+func (a *App) AuthListQuery(ctx context.Context, userID int64) ([]types.Category_, error) {
+	q := ctx.Value(middleware.SearchKeys("q")).(string)
+	limit := ctx.Value(middleware.PaginationKeys("per_page")).(int)
+	offset := ctx.Value(middleware.PaginationKeys("db_offset")).(int)
 	cs := []types.Category_{}
 
 	// Query to list all categories and put following ones at the top
@@ -60,13 +69,12 @@ func (a *App) AuthListQuery(userID int64, q string, limit int, offset int) ([]ty
 	`
 
 	var err error
-	query := q + "%"
 
-	rows, err := a.DB.Query(sqlQuery, userID, query, limit, offset)
+	rows, err := a.DB.Query(sqlQuery, userID, q, limit, offset)
 	if err == sql.ErrNoRows {
 		return cs, nil
 	} else if err != nil {
-		return nil, err
+		return cs, err
 	}
 
 	defer rows.Close()
@@ -74,7 +82,7 @@ func (a *App) AuthListQuery(userID int64, q string, limit int, offset int) ([]ty
 		var c types.Category_
 		err := rows.Scan(&c.ID, &c.Name, &c.IsFollowing)
 		if err != nil {
-			return nil, err
+			return cs, err
 		}
 		cs = append(cs, c)
 	}

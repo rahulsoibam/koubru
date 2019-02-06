@@ -1,11 +1,54 @@
 package users
 
 import (
+	"context"
 	"database/sql"
 
 	"github.com/lib/pq"
+	"github.com/rahulsoibam/koubru/middleware"
 	"github.com/rahulsoibam/koubru/types"
 )
+
+func (a *App) ListQuery(ctx context.Context) ([]types.SearchUser, error) {
+	q := ctx.Value(middleware.SearchKeys("q")).(string)
+	limit := ctx.Value(middleware.PaginationKeys("per_page")).(int)
+	offset := ctx.Value(middleware.PaginationKeys("db_offset")).(int)
+	q = "%" + q
+
+	us := []types.SearchUser{}
+	sqlQuery := `
+	SELECT
+		u.username,
+		u.full_name,
+		u.picture
+	FROM Kuser u
+	WHERE u.username LIKE $1 OR u.full_name LIKE $1
+	ORDER BY t.created_on DESC
+	LIMIT $2 OFFSET $3
+	`
+	rows, err := a.DB.Query(sqlQuery, q, limit, offset)
+	if err != nil {
+		if err != nil {
+			return us, nil
+		}
+		return us, err
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+		u := types.SearchUser{}
+		err := rows.Scan(&u.Username, &u.FullName, &u.FullName)
+		if err != nil {
+			return us, err
+		}
+		us = append(us, u)
+	}
+	err = rows.Err()
+	if err != nil {
+		return us, err
+	}
+	return us, nil
+}
 
 func (a *App) AuthGetQuery(userID int64, usernameID int64) (types.User, error) {
 	u := types.User{}

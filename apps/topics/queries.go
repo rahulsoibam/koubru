@@ -1,14 +1,57 @@
 package topics
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
+
+	"github.com/rahulsoibam/koubru/middleware"
 
 	"github.com/lib/pq"
 
 	"github.com/rahulsoibam/koubru/types"
 )
+
+func (a *App) ListQuery(ctx context.Context) ([]types.SearchTopic, error) {
+	q := ctx.Value(middleware.SearchKeys("q")).(string)
+	limit := ctx.Value(middleware.PaginationKeys("per_page")).(int)
+	offset := ctx.Value(middleware.PaginationKeys("db_offset")).(int)
+	q = "%" + q
+
+	ts := []types.SearchTopic{}
+	sqlQuery := `
+	SELECT
+		t.topic_id,
+		t.title
+	FROM Topic t
+	WHERE t.title LIKE $1
+	ORDER BY t.created_on DESC
+	LIMIT $2 OFFSET $3
+	`
+	rows, err := a.DB.Query(sqlQuery, q, limit, offset)
+	if err != nil {
+		if err != nil {
+			return ts, nil
+		}
+		return ts, err
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+		t := types.SearchTopic{}
+		err := rows.Scan(&t.ID, &t.Title)
+		if err != nil {
+			return ts, err
+		}
+		ts = append(ts, t)
+	}
+	err = rows.Err()
+	if err != nil {
+		return ts, err
+	}
+	return ts, nil
+}
 
 func (a *App) AuthCreateQuery(userID int64, t types.NewTopic) (types.Topic, error) {
 	tres := types.Topic{}

@@ -18,17 +18,14 @@ func (a *App) List(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 	userID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
-	query := r.FormValue("q")
-	limit := ctx.Value(middleware.PaginationKeys("per_page")).(int)
-	offset := ctx.Value(middleware.PaginationKeys("db_offset")).(int)
 
 	categories := []types.Category_{}
 	var err error
 	// Check authorization and perform query
 	if auth {
-		categories, err = a.AuthListQuery(userID, query, limit, offset)
+		categories, err = a.AuthListQuery(ctx, userID)
 	} else {
-		categories, err = a.ListQuery(query, limit, offset)
+		categories, err = a.ListQuery(ctx)
 	}
 
 	if err != nil {
@@ -36,7 +33,7 @@ func (a *App) List(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
-	utils.RespondWithJSON(w, http.StatusOK, &categories)
+	utils.RespondWithJSON(w, http.StatusOK, categories)
 }
 
 // Create a category

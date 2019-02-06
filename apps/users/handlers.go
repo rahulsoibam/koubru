@@ -14,8 +14,18 @@ import (
 )
 
 func (a *App) List(w http.ResponseWriter, r *http.Request) {
-	q := r.FormValue("q")
-	w.Write([]byte(q))
+	ctx := r.Context()
+
+	users := []types.SearchUser{}
+	var err error
+	users, err = a.ListQuery(ctx)
+
+	if err != nil {
+		log.Println(err)
+		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
+		return
+	}
+	utils.RespondWithJSON(w, http.StatusOK, users)
 }
 
 // Get details of authenticated user

@@ -10,7 +10,8 @@ func (a *App) Routes() chi.Router {
 	r.Group(func(r chi.Router) {
 		r.Use(a.Middleware.OptionalAuthorization)
 		r.Use(a.Middleware.Pagination)
-		r.Use(a.Middleware.Sorting)
+		// r.Use(a.Middleware.Sorting)
+		r.Use(a.Middleware.Search)
 		r.Get("/", a.List)
 	})
 	r.Group(func(r chi.Router) {

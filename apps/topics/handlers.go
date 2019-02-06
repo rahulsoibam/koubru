@@ -15,7 +15,18 @@ import (
 
 // List all topics
 func (a *App) List(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Low priority. Will be added with search functionality after setting up ElastcSearch"))
+	ctx := r.Context()
+
+	topics := []types.SearchTopic{}
+	var err error
+	topics, err = a.ListQuery(ctx)
+
+	if err != nil {
+		log.Println(err)
+		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
+		return
+	}
+	utils.RespondWithJSON(w, http.StatusOK, topics)
 }
 
 // Create a topic

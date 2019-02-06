@@ -9,6 +9,8 @@ func (a *App) Routes() chi.Router {
 	r := chi.NewRouter()
 	r.Group(func(r chi.Router) {
 		r.Use(a.Middleware.OptionalAuthorization)
+		r.Use(a.Middleware.Pagination)
+		r.Use(a.Middleware.Search)
 		r.Get("/", a.List) // Low priority. The only place this endpoint will be needed is in searching,
 		// but searching will be done using ElastiSearch, so no complex queries
 	})

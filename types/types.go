@@ -93,7 +93,7 @@ type Topic struct {
 		Username string `json:"username"`
 		FullName string `json:"full_name"`
 		Picture  string `json:"picture"`
-		IsSelf   string `json:"is_self"`
+		IsSelf   bool   `json:"is_self"`
 	} `json:"created_by"`
 	Categories  json.RawMessage `json:"categories"`
 	IsFollowing bool            `json:"is_following"`
@@ -145,7 +145,7 @@ type Opinion_ struct {
 		Username string `json:"username"`
 		FullName string `json:"full_name"`
 		Picture  string `json:"picture"`
-		IsSelf   string `json:"is_self"`
+		IsSelf   bool   `json:"is_self"`
 	} `json:"created_by"`
 	IsAnonymous bool      `json:"is_anonymous"`
 	Thumbnails  []string  `json:"thumbnails"`
@@ -250,4 +250,15 @@ type Breadcrumb struct {
 	Counts struct {
 		Replies int64 `json:"replies"`
 	} `json:"counts"`
+}
+
+type SearchTopic struct {
+	ID    int64  `json:"id"`
+	Title string `json:"title"`
+}
+
+type SearchUser struct {
+	Username string `json:"username"`
+	FullName string `json:"full_name"`
+	Picture  string `json:"picture"`
 }

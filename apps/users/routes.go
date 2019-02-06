@@ -9,6 +9,7 @@ func (a *App) Routes() chi.Router {
 	r := chi.NewRouter()
 	r.Group(func(r chi.Router) {
 		r.Use(a.Middleware.Pagination)
+		r.Use(a.Middleware.Search)
 		r.Get("/", a.List)
 	})
 	r.Route("/@{username:^[A-Za-z0-9_.]{3,30}$}", func(r chi.Router) {
