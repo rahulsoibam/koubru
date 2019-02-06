@@ -237,3 +237,17 @@ func (nr *NewReply) Validate() error {
 	}
 	return nil
 }
+
+type Breadcrumb struct {
+	OpinionID int64     `json:"opinion_id"`
+	CreatedOn time.Time `json:"created_on"`
+	CreatedBy struct {
+		Username string `json:"username"`
+		FullName string `json:"full_name"`
+		Picture  string `json:"picture"`
+		IsSelf   bool   `json:"is_self"`
+	} `json:"is_self"`
+	Counts struct {
+		Replies int64 `json:"replies"`
+	} `json:"counts"`
+}

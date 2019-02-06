@@ -13,6 +13,11 @@ import (
 	"github.com/rahulsoibam/koubru/utils"
 )
 
+func (a *App) List(w http.ResponseWriter, r *http.Request) {
+	q := r.FormValue("q")
+	w.Write([]byte(q))
+}
+
 // Get details of authenticated user
 func (a *App) Get(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()

@@ -109,30 +109,6 @@ func (a *App) Create(w http.ResponseWriter, r *http.Request) {
 	utils.RespondWithJSON(w, http.StatusOK, opinion)
 }
 
-// Get to get details of an opinion
-func (a *App) Get(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	userID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
-	opinionID := ctx.Value(middleware.OpinionKeys("opinion_id")).(int64)
-
-	opinion := types.Opinion{}
-	var err error
-
-	if auth {
-		opinion, err = a.AuthGetQuery(userID, opinionID)
-	} else {
-		opinion, err = a.GetQuery(opinionID)
-	}
-
-	if err != nil {
-		log.Println(err)
-		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
-		return
-	}
-
-	utils.RespondWithJSON(w, http.StatusOK, opinion)
-}
-
 func (a *App) Reply(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
@@ -203,6 +179,51 @@ func (a *App) Reply(w http.ResponseWriter, r *http.Request) {
 	utils.RespondWithJSON(w, http.StatusOK, opinion)
 }
 
+// Get to get details of an opinion
+func (a *App) Get(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
+	opinionID := ctx.Value(middleware.OpinionKeys("opinion_id")).(int64)
+
+	opinion := types.Opinion{}
+	var err error
+
+	if auth {
+		opinion, err = a.AuthGetQuery(userID, opinionID)
+	} else {
+		opinion, err = a.GetQuery(opinionID)
+	}
+
+	if err != nil {
+		log.Println(err)
+		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
+		return
+	}
+
+	utils.RespondWithJSON(w, http.StatusOK, opinion)
+}
+
+func (a *App) Breadcrumbs(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	opinionID := ctx.Value(middleware.OpinionKeys("opinion_id")).(int64)
+	userID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
+
+	breadcrumbs := []types.Breadcrumb{}
+	var err error
+	if auth {
+		breadcrumbs, err = a.AuthBreadcrumbsQuery(userID, opinionID)
+	} else {
+		breadcrumbs, err = a.BreadcrumbsQuery(opinionID)
+	}
+	if err != nil {
+		log.Println(err)
+		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
+		return
+	}
+
+	utils.RespondWithJSON(w, http.StatusOK, breadcrumbs)
+}
+
 // Delete to delete an opinion
 func (a *App) Delete(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Delete opinion"))
@@ -253,8 +274,4 @@ func (a *App) Report(w http.ResponseWriter, r *http.Request) {
 // Vote to vote on an opinion
 func (a *App) Vote(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Vote on an opinion"))
-}
-
-func (a *App) Breadcrumbs(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Breadcrumbs of an opinion"))
 }

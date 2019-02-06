@@ -409,3 +409,101 @@ func (a *App) RepliesQuery(opinionID int64) ([]types.Opinion, error) {
 
 	return os, nil
 }
+
+func (a *App) AuthBreadcrumbsQuery(userID int64, opinionID int64) ([]types.Breadcrumb, error) {
+	bs := []types.Breadcrumb{}
+
+	sqlQuery := `
+    WITH RECURSIVE ancestors as (
+        SELECT opinion_id, parent_id, creator_id, created_on
+        FROM Opinion
+        WHERE opinion_id = $2 
+      UNION ALL
+        SELECT o.opinion_id, o.parent_id, o.creator_id, o.created_on
+        FROM Opinion AS o
+        JOIN ancestors
+        ON o.opinion_id = ancestors.parent_id
+    )
+    SELECT
+        a.opinion_id,
+        u.username,
+        u.full_name,
+        u.picture,
+        case when u.user_id = $1 then 1 else 0 end as is_self,
+        (select count(*) from opinion where parent_id=a.opinion_id) as reply_count
+    FROM ancestors a INNER JOIN Kuser u ON u.user_id = a.creator_id order by a.created_on asc;
+    `
+	rows, err := a.DB.Query(sqlQuery, userID, opinionID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return bs, nil
+		}
+		return bs, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		b := types.Breadcrumb{}
+		err := rows.Scan(&b.OpinionID, &b.CreatedBy.Username, &b.CreatedBy.FullName, &b.CreatedBy.Picture, &b.CreatedBy.IsSelf, &b.Counts.Replies)
+		if err != nil {
+			return bs, err
+		}
+		bs = append(bs, b)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return bs, err
+	}
+
+	return bs, nil
+}
+
+func (a *App) BreadcrumbsQuery(opinionID int64) ([]types.Breadcrumb, error) {
+	bs := []types.Breadcrumb{}
+
+	sqlQuery := `
+    WITH RECURSIVE ancestors as (
+        SELECT opinion_id, parent_id, creator_id, created_on
+        FROM Opinion
+        WHERE opinion_id = $1
+      UNION ALL
+        SELECT o.opinion_id, o.parent_id, o.creator_id, o.created_on
+        FROM Opinion AS o
+        JOIN ancestors
+        ON o.opinion_id = ancestors.parent_id
+    )
+    SELECT
+        a.opinion_id,
+        u.username,
+        u.full_name,
+        u.picture,
+        0 as is_self,
+        (select count(*) from opinion where parent_id=a.opinion_id) as reply_count
+    FROM ancestors a INNER JOIN Kuser u ON u.user_id = a.creator_id order by a.created_on asc;
+    `
+	rows, err := a.DB.Query(sqlQuery, opinionID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return bs, nil
+		}
+		return bs, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		b := types.Breadcrumb{}
+		err := rows.Scan(&b.OpinionID, &b.CreatedBy.Username, &b.CreatedBy.FullName, &b.CreatedBy.Picture, &b.CreatedBy.IsSelf, &b.Counts.Replies)
+		if err != nil {
+			return bs, err
+		}
+		bs = append(bs, b)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return bs, err
+	}
+
+	return bs, nil
+}
