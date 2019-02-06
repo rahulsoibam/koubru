@@ -426,6 +426,7 @@ func (a *App) AuthBreadcrumbsQuery(userID int64, opinionID int64) ([]types.Bread
     )
     SELECT
         a.opinion_id,
+        a.created_on,
         u.username,
         u.full_name,
         u.picture,
@@ -444,7 +445,7 @@ func (a *App) AuthBreadcrumbsQuery(userID int64, opinionID int64) ([]types.Bread
 
 	for rows.Next() {
 		b := types.Breadcrumb{}
-		err := rows.Scan(&b.OpinionID, &b.CreatedBy.Username, &b.CreatedBy.FullName, &b.CreatedBy.Picture, &b.CreatedBy.IsSelf, &b.Counts.Replies)
+		err := rows.Scan(&b.OpinionID, &b.CreatedOn, &b.CreatedBy.Username, &b.CreatedBy.FullName, &b.CreatedBy.Picture, &b.CreatedBy.IsSelf, &b.Counts.Replies)
 		if err != nil {
 			return bs, err
 		}
@@ -475,6 +476,7 @@ func (a *App) BreadcrumbsQuery(opinionID int64) ([]types.Breadcrumb, error) {
     )
     SELECT
         a.opinion_id,
+        a.created_on
         u.username,
         u.full_name,
         u.picture,
@@ -493,7 +495,7 @@ func (a *App) BreadcrumbsQuery(opinionID int64) ([]types.Breadcrumb, error) {
 
 	for rows.Next() {
 		b := types.Breadcrumb{}
-		err := rows.Scan(&b.OpinionID, &b.CreatedBy.Username, &b.CreatedBy.FullName, &b.CreatedBy.Picture, &b.CreatedBy.IsSelf, &b.Counts.Replies)
+		err := rows.Scan(&b.OpinionID, &b.CreatedOn, &b.CreatedBy.Username, &b.CreatedBy.FullName, &b.CreatedBy.Picture, &b.CreatedBy.IsSelf, &b.Counts.Replies)
 		if err != nil {
 			return bs, err
 		}
