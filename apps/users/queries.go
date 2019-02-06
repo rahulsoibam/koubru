@@ -16,7 +16,6 @@ func (a *App) ListQuery(ctx context.Context) ([]types.SearchUser, error) {
 	offset := ctx.Value(middleware.PaginationKeys("db_offset")).(int)
 
 	us := []types.SearchUser{}
-	q = "%" + q
 	sqlQuery := `
 	SELECT
 		u.username,
@@ -39,7 +38,7 @@ func (a *App) ListQuery(ctx context.Context) ([]types.SearchUser, error) {
 	defer rows.Close()
 	for rows.Next() {
 		u := types.SearchUser{}
-		err := rows.Scan(&u.Username, &u.FullName, &u.FullName)
+		err := rows.Scan(&u.Username, &u.FullName, &u.Picture)
 		if err != nil {
 			return us, err
 		}

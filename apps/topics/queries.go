@@ -17,7 +17,6 @@ func (a *App) ListQuery(ctx context.Context) ([]types.SearchTopic, error) {
 	q := ctx.Value(middleware.SearchKeys("q")).(string)
 	limit := ctx.Value(middleware.PaginationKeys("per_page")).(int)
 	offset := ctx.Value(middleware.PaginationKeys("db_offset")).(int)
-	q = "%" + q
 
 	ts := []types.SearchTopic{}
 	sqlQuery := `
