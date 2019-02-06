@@ -242,7 +242,7 @@ func (a *App) AuthCreateQuery(userID int64, no types.NewOpinion) (types.Opinion,
 	}
 
 	var opinionID int64
-	err = tx.QueryRow("INSERT INTO Opinion (topic_id, creator_id, reaction, is_anonymous, dash) VALUES ($1, $2, $3, $4) RETURNING opinion_id", no.TopicID, userID, no.Reaction, no.IsAnonymous, no.Mp4).Scan(&opinionID)
+	err = tx.QueryRow("INSERT INTO Opinion (topic_id, creator_id, reaction, is_anonymous, dash) VALUES ($1, $2, $3, $4, $5) RETURNING opinion_id", no.TopicID, userID, no.Reaction, no.IsAnonymous, no.Mp4).Scan(&opinionID)
 	if err != nil {
 		tx.Rollback()
 		return o, err
