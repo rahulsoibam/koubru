@@ -249,7 +249,7 @@ func (a *App) AuthCreateReplyQuery(userID int64, nr types.NewReply) (types.Opini
 	if nr.ParentID == 0 {
 		err = tx.QueryRow("INSERT INTO Opinion (topic_id, creator_id, reaction, is_anonymous, dash) VALUES ($1, $2, $3, $4, $5) RETURNING opinion_id", nr.TopicID, userID, nr.Reaction, nr.IsAnonymous, nr.Mp4).Scan(&opinionID)
 	} else {
-		err = tx.QueryRow("INSERT INTO Opinion (parent_id, topic_id, creator_id, reaction, is_anonymous, dash) VALUES ($1, $2, $3, $4, $5) RETURNING opinion_id", nr.ParentID, nr.TopicID, userID, nr.Reaction, nr.IsAnonymous, nr.Mp4).Scan(&opinionID)
+		err = tx.QueryRow("INSERT INTO Opinion (parent_id, topic_id, creator_id, reaction, is_anonymous, dash) VALUES ($1, $2, $3, $4, $5, $6) RETURNING opinion_id", nr.ParentID, nr.TopicID, userID, nr.Reaction, nr.IsAnonymous, nr.Mp4).Scan(&opinionID)
 	}
 	if err != nil {
 		tx.Rollback()
