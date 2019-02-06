@@ -3,6 +3,7 @@ package opinions
 import (
 	"context"
 	"database/sql"
+	"log"
 
 	"github.com/lib/pq"
 	"github.com/rahulsoibam/koubru/middleware"
@@ -183,6 +184,7 @@ func (a *App) AuthGetQuery(userID int64, opinionID int64) (types.Opinion, error)
 
 	err := a.DB.QueryRow(sqlQuery, userID, opinionID).Scan(&o.ID, &o.CreatedBy.Username, &o.CreatedBy.FullName, &o.CreatedBy.Picture, &o.CreatedBy.IsSelf, &o.Topic.ID, &o.Topic.Title, &o.Topic.Details, (*[]byte)(&o.Topic.Categories), &o.Topic.IsFollowing, &o.IsAnonymous, &o.IsFollowing, pq.Array(&o.Thumbnails), &o.Sources.Hls, &o.Sources.Dash, &o.Sources.Aac, &o.Vote, &o.Reaction, &o.CreatedOn, &o.Counts.Views, &o.Counts.Upvotes, &o.Counts.Downvotes, &o.Counts.Followers, &o.Counts.Replies)
 	if err != nil {
+		log.Println(err)
 		return o, err
 	}
 
@@ -223,7 +225,7 @@ func (a *App) GetQuery(opinionID int64) (types.Opinion, error) {
         LEFT JOIN Topic_Category tc on tc.topic_id = t.topic_id
         LEFT JOIN Category c on c.category_id=tc.category_id
     WHERE o.opinion_id=$1
-    GROUP BY o.opinion_id, u.user_id, t.topic_id, views;
+    GROUP BY o.opinion_id, u.user_id, t.topic_id, views
 	`
 
 	err := a.DB.QueryRow(sqlQuery, opinionID).Scan(&o.ID, &o.CreatedBy.Username, &o.CreatedBy.FullName, &o.CreatedBy.Picture, &o.CreatedBy.IsSelf, &o.Topic.ID, &o.Topic.Title, &o.Topic.Details, (*[]byte)(&o.Topic.Categories), &o.Topic.IsFollowing, &o.IsAnonymous, &o.IsFollowing, pq.Array(&o.Thumbnails), &o.Sources.Hls, &o.Sources.Dash, &o.Sources.Aac, &o.Vote, &o.Reaction, &o.CreatedOn, &o.Counts.Views, &o.Counts.Upvotes, &o.Counts.Downvotes, &o.Counts.Followers, &o.Counts.Replies)
@@ -238,6 +240,7 @@ func (a *App) AuthCreateQuery(userID int64, no types.NewOpinion) (types.Opinion,
 	o := types.Opinion{}
 	tx, err := a.DB.Begin()
 	if err != nil {
+		log.Println(err)
 		return o, err
 	}
 
@@ -245,21 +248,25 @@ func (a *App) AuthCreateQuery(userID int64, no types.NewOpinion) (types.Opinion,
 	err = tx.QueryRow("INSERT INTO Opinion (topic_id, creator_id, reaction, is_anonymous, dash) VALUES ($1, $2, $3, $4, $5) RETURNING opinion_id", no.TopicID, userID, no.Reaction, no.IsAnonymous, no.Mp4).Scan(&opinionID)
 	if err != nil {
 		tx.Rollback()
+		log.Println(err)
 		return o, err
 	}
 
 	_, err = tx.Exec("INSERT INTO opinion_follower (opinion_id, follower_id) VALUES ($1, $2)", opinionID, userID)
 	if err != nil {
 		tx.Rollback()
+		log.Println(err)
 		return o, err
 	}
 	err = tx.Commit()
 	if err != nil {
+		log.Println(err)
 		return o, err
 	}
 
 	o, err = a.AuthGetQuery(userID, opinionID)
 	if err != nil {
+		log.Println(err)
 		return o, err
 	}
 	return o, nil
@@ -309,6 +316,7 @@ func (a *App) AuthRepliesQuery(userID int64, opinionID int64) ([]types.Opinion, 
 		if err == sql.ErrNoRows {
 			return os, nil
 		}
+		log.Println(err)
 		return os, err
 	}
 	defer rows.Close()
@@ -317,6 +325,7 @@ func (a *App) AuthRepliesQuery(userID int64, opinionID int64) ([]types.Opinion, 
 		o := types.Opinion{}
 		err := rows.Scan(&o.ID, &o.CreatedBy.Username, &o.CreatedBy.FullName, &o.CreatedBy.Picture, &o.CreatedBy.IsSelf, &o.Topic.ID, &o.Topic.Title, &o.Topic.Details, (*[]byte)(&o.Topic.Categories), &o.Topic.IsFollowing, &o.IsAnonymous, &o.IsFollowing, pq.Array(&o.Thumbnails), &o.Sources.Hls, &o.Sources.Dash, &o.Sources.Aac, &o.Vote, &o.Reaction, &o.CreatedOn, &o.Counts.Views, &o.Counts.Upvotes, &o.Counts.Downvotes, &o.Counts.Followers, &o.Counts.Replies)
 		if err != nil {
+			log.Println(err)
 			return os, err
 		}
 		os = append(os, o)
@@ -324,6 +333,7 @@ func (a *App) AuthRepliesQuery(userID int64, opinionID int64) ([]types.Opinion, 
 
 	err = rows.Err()
 	if err != nil {
+		log.Println(err)
 		return os, err
 	}
 
