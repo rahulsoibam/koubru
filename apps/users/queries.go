@@ -13,7 +13,6 @@ func (a *App) ListQuery(ctx context.Context) ([]types.SearchUser, error) {
 	q := ctx.Value(middleware.SearchKeys("q")).(string)
 	limit := ctx.Value(middleware.PaginationKeys("per_page")).(int)
 	offset := ctx.Value(middleware.PaginationKeys("db_offset")).(int)
-	q = "%" + q
 
 	us := []types.SearchUser{}
 	sqlQuery := `
