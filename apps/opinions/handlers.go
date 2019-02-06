@@ -27,7 +27,7 @@ func (a *App) List(w http.ResponseWriter, r *http.Request) {
 		opinions, err = a.ListQuery(ctx)
 	}
 	if err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
@@ -39,7 +39,7 @@ func (a *App) Create(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
 	if !auth {
-		a.Log.Errorln(ctx)
+		log.Println(ctx)
 		utils.RespondWithError(w, http.StatusUnauthorized, errs.Unauthorized)
 		return
 	}
@@ -48,7 +48,7 @@ func (a *App) Create(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	reader, err := r.MultipartReader()
 	if err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
@@ -63,7 +63,7 @@ func (a *App) Create(w http.ResponseWriter, r *http.Request) {
 			buf.ReadFrom(part)
 			no.TopicID, err = strconv.ParseInt(buf.String(), 10, 64)
 			if err != nil {
-				a.Log.Errorln(err)
+				log.Println(err)
 				utils.RespondWithError(w, http.StatusBadRequest, errs.BadRequest)
 				return
 			}
@@ -78,13 +78,13 @@ func (a *App) Create(w http.ResponseWriter, r *http.Request) {
 		} else if part.FormName() == "file" {
 			uuid, err := a.Flake.NextID()
 			if err != nil {
-				a.Log.Errorln(err)
+				log.Println(err)
 				utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 			}
 			filename := strconv.FormatUint(uuid, 10) + ".mp4"
 			no.Mp4, err = a.S3UploadOpinion(part, filename)
 			if err != nil {
-				a.Log.Errorln(err)
+				log.Println(err)
 				utils.RespondWithError(w, http.StatusBadRequest, errs.BadRequest)
 				return
 			}
@@ -92,7 +92,7 @@ func (a *App) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	// Validate
 	if err := no.Validate(); err != nil {
-		a.Log.Errorln(no, err)
+		log.Println(no, err)
 		utils.RespondWithError(w, http.StatusBadRequest, err)
 		return
 	}
@@ -101,7 +101,7 @@ func (a *App) Create(w http.ResponseWriter, r *http.Request) {
 	opinion, err = a.AuthCreateQuery(userID, no)
 
 	if err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
@@ -125,7 +125,7 @@ func (a *App) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}

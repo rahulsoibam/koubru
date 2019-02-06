@@ -2,6 +2,7 @@ package topics
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/lib/pq"
@@ -43,7 +44,7 @@ func (a *App) Create(w http.ResponseWriter, r *http.Request) {
 
 	topic, err := a.AuthCreateQuery(userID, t)
 	if err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
@@ -64,7 +65,7 @@ func (a *App) Get(w http.ResponseWriter, r *http.Request) {
 		topic, err = a.GetQuery(topicID)
 	}
 	if err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
@@ -95,7 +96,7 @@ func (a *App) Followers(w http.ResponseWriter, r *http.Request) {
 		followers, err = a.FollowersQuery(topicID)
 	}
 	if err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
@@ -109,7 +110,7 @@ func (a *App) Follow(w http.ResponseWriter, r *http.Request) {
 	followerID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
 
 	if !auth {
-		a.Log.Errorln(errs.UnintendedExecution)
+		log.Println(errs.UnintendedExecution)
 		utils.RespondWithError(w, http.StatusUnauthorized, errs.Unauthorized)
 		return
 	}
@@ -122,7 +123,7 @@ func (a *App) Follow(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
@@ -135,19 +136,19 @@ func (a *App) Unfollow(w http.ResponseWriter, r *http.Request) {
 	topicID := ctx.Value(middleware.TopicKeys("topic_id")).(int64)
 	followerID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
 	if !auth {
-		a.Log.Errorln(errs.UnintendedExecution)
+		log.Println(errs.UnintendedExecution)
 		utils.RespondWithError(w, http.StatusUnauthorized, errs.Unauthorized)
 		return
 	}
 	response, err := a.DB.Exec("DELETE FROM Topic_Follower WHERE topic_id=$1 AND follower_id=$2", topicID, followerID)
 	if err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
 	count, err := response.RowsAffected()
 	if err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
@@ -176,7 +177,7 @@ func (a *App) Opinions(w http.ResponseWriter, r *http.Request) {
 		opinions, err = a.OpinionsQuery(topicID)
 	}
 	if err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}

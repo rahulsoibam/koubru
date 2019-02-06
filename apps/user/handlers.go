@@ -2,6 +2,7 @@ package user
 
 import (
 	"database/sql"
+	"log"
 	"net/http"
 
 	"github.com/rahulsoibam/koubru/errs"
@@ -16,7 +17,7 @@ func (a *App) Get(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
 	if !auth {
-		a.Log.Errorln(ctx)
+		log.Println(ctx)
 		utils.RespondWithError(w, http.StatusUnauthorized, errs.Unauthorized)
 		return
 	}
@@ -31,7 +32,7 @@ func (a *App) Get(w http.ResponseWriter, r *http.Request) {
 			utils.RespondWithError(w, http.StatusNotFound, errs.UserNotFound)
 			return
 		}
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -43,7 +44,7 @@ func (a *App) Followers(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
 	if !auth {
-		a.Log.Errorln(ctx)
+		log.Println(ctx)
 		utils.RespondWithError(w, http.StatusUnauthorized, errs.Unauthorized)
 		return
 	}
@@ -52,7 +53,7 @@ func (a *App) Followers(w http.ResponseWriter, r *http.Request) {
 	var err error
 	followers, err = a.AuthFollowersQuery(userID)
 	if err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
@@ -64,7 +65,7 @@ func (a *App) Following(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
 	if !auth {
-		a.Log.Errorln(ctx)
+		log.Println(ctx)
 		utils.RespondWithError(w, http.StatusUnauthorized, errs.Unauthorized)
 		return
 	}
@@ -73,7 +74,7 @@ func (a *App) Following(w http.ResponseWriter, r *http.Request) {
 	var err error
 	following, err = a.AuthFollowingQuery(userID)
 	if err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
@@ -85,7 +86,7 @@ func (a *App) Opinions(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
 	if !auth {
-		a.Log.Errorln(ctx)
+		log.Println(ctx)
 		utils.RespondWithError(w, http.StatusUnauthorized, errs.Unauthorized)
 		return
 	}
@@ -94,7 +95,7 @@ func (a *App) Opinions(w http.ResponseWriter, r *http.Request) {
 	var err error
 	opinions, err = a.AuthOpinionsQuery(userID)
 	if err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
@@ -106,7 +107,7 @@ func (a *App) Topics(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
 	if !auth {
-		a.Log.Errorln(ctx)
+		log.Println(ctx)
 		utils.RespondWithError(w, http.StatusUnauthorized, errs.Unauthorized)
 		return
 	}
@@ -115,7 +116,7 @@ func (a *App) Topics(w http.ResponseWriter, r *http.Request) {
 	var err error
 	topics, err = a.AuthTopicsQuery(userID)
 	if err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}

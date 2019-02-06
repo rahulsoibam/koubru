@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -64,7 +65,7 @@ func (a *App) Login(w http.ResponseWriter, r *http.Request) {
 	// Get user login type, out of email and username
 	loginType, err := creds.ValidateAndLoginType()
 	if err != nil {
-		a.Log.Errorln(err, creds)
+		log.Println(err, creds)
 		utils.RespondWithError(w, http.StatusBadRequest, err)
 		return
 	}
@@ -82,7 +83,7 @@ func (a *App) Login(w http.ResponseWriter, r *http.Request) {
 			utils.RespondWithError(w, http.StatusNotFound, errs.UserNotFound)
 			return
 		default:
-			a.Log.Errorln(err)
+			log.Println(err)
 			utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 			return
 		}
@@ -97,7 +98,7 @@ func (a *App) Login(w http.ResponseWriter, r *http.Request) {
 			utils.RespondWithError(w, http.StatusBadRequest, errs.NoPasswordSet)
 			return
 		default:
-			a.Log.Errorln(err)
+			log.Println(err)
 			utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 			return
 		}
@@ -107,7 +108,7 @@ func (a *App) Login(w http.ResponseWriter, r *http.Request) {
 	var match bool
 	match, err = authutils.ComparePasswordAndHash(creds.Password, encodedHash)
 	if err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
@@ -119,7 +120,7 @@ func (a *App) Login(w http.ResponseWriter, r *http.Request) {
 	// Generate bearer token
 	bearerToken, err := authutils.GenerateSecureToken(256)
 	if err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
@@ -127,7 +128,7 @@ func (a *App) Login(w http.ResponseWriter, r *http.Request) {
 	// Authenticate and return access token
 	token, err := a.authenticate(userID, bearerToken, r.UserAgent())
 	if err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -174,14 +175,14 @@ func (a *App) Register(w http.ResponseWriter, r *http.Request) {
 			utils.RespondWithError(w, http.StatusBadRequest, errors.New(e.Detail))
 			return
 		}
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, err)
 		return
 	}
 	// Generate password hash
 	encodedHash, err := authutils.GenerateFromPassword(nu.Password, a.Argon2Params)
 	if err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
@@ -189,7 +190,7 @@ func (a *App) Register(w http.ResponseWriter, r *http.Request) {
 	// Store password in separate database
 	err = a.dbStorePassword(userID, encodedHash)
 	if err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
@@ -199,7 +200,7 @@ func (a *App) Register(w http.ResponseWriter, r *http.Request) {
 
 	bearerToken, err := authutils.GenerateSecureToken(256)
 	if err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
@@ -207,7 +208,7 @@ func (a *App) Register(w http.ResponseWriter, r *http.Request) {
 	// Store authentication details in data layers and return access token
 	token, err := a.authenticate(userID, bearerToken, r.UserAgent())
 	if err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
@@ -255,24 +256,24 @@ func (a *App) Facebook(w http.ResponseWriter, r *http.Request) {
 		case sql.ErrNoRows:
 			username, err := fu.GenerateUsername(a.AuthCache)
 			if err != nil {
-				a.Log.Errorln(err)
+				log.Println(err)
 				utils.RespondWithError(w, http.StatusBadRequest, err)
 				return
 			}
 			userID, err = a.dbRegisterUserUsingFacebook(fu, username)
 			if err != nil {
 				if e, ok := err.(*pq.Error); ok {
-					a.Log.Errorln(e)
+					log.Println(e)
 					utils.RespondWithError(w, http.StatusInternalServerError, errors.New(e.Detail))
 					return
 				}
-				a.Log.Errorln(err)
+				log.Println(err)
 				utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 				return
 			}
 			a.AuthCache.SAdd("usernames", username)
 		default:
-			a.Log.Errorln(err)
+			log.Println(err)
 			utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 			return
 		}
@@ -280,14 +281,14 @@ func (a *App) Facebook(w http.ResponseWriter, r *http.Request) {
 
 	bearerToken, err := authutils.GenerateSecureToken(256)
 	if err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	token, err := a.authenticate(userID, bearerToken, r.UserAgent())
 	if err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -310,7 +311,7 @@ func (a *App) Google(w http.ResponseWriter, r *http.Request) {
 	}
 	cs, err := googlejwt.Decode(googleIDToken)
 	if err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
@@ -327,30 +328,30 @@ func (a *App) Google(w http.ResponseWriter, r *http.Request) {
 			userID, err = a.dbRegisterUserUsingGoogle(cs, username)
 			if err != nil {
 				if e, ok := err.(*pq.Error); ok {
-					a.Log.Errorln(e)
+					log.Println(e)
 					utils.RespondWithError(w, http.StatusInternalServerError, errors.New(e.Detail))
 					return
 				}
-				a.Log.Errorln(err)
+				log.Println(err)
 				utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 				return
 			}
 			a.AuthCache.SAdd("usernames", username)
 		default:
-			a.Log.Errorln(err)
+			log.Println(err)
 			utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 			return
 		}
 	}
 	bearerToken, err := authutils.GenerateSecureToken(256)
 	if err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
 	token, err := a.authenticate(userID, bearerToken, r.UserAgent())
 	if err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
@@ -386,7 +387,7 @@ func (a *App) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 	count, err := res.RowsAffected()
 	if err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
@@ -403,7 +404,7 @@ func (a *App) CheckEmail(w http.ResponseWriter, r *http.Request) {
 	email := r.FormValue("email")
 	email = strings.ToLower(email)
 	if err := utils.ValidateEmail(email); err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusBadRequest, errs.BadRequest)
 		return
 	}

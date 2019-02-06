@@ -2,6 +2,7 @@ package users
 
 import (
 	"database/sql"
+	"log"
 	"net/http"
 
 	"github.com/lib/pq"
@@ -32,7 +33,7 @@ func (a *App) Get(w http.ResponseWriter, r *http.Request) {
 			utils.RespondWithError(w, http.StatusNotFound, errs.UserNotFound)
 			return
 		}
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
@@ -55,7 +56,7 @@ func (a *App) Followers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
@@ -78,7 +79,7 @@ func (a *App) Following(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
@@ -100,7 +101,7 @@ func (a *App) Topics(w http.ResponseWriter, r *http.Request) {
 		topics, err = a.TopicsQuery(usernameID)
 	}
 	if err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
@@ -122,7 +123,7 @@ func (a *App) Opinions(w http.ResponseWriter, r *http.Request) {
 		opinions, err = a.OpinionsQuery(usernameID)
 	}
 	if err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
@@ -135,7 +136,7 @@ func (a *App) Follow(w http.ResponseWriter, r *http.Request) {
 	usernameID := ctx.Value(middleware.UsernameIDKeys("username_id")).(int64)
 	username := ctx.Value(middleware.UsernameIDKeys("username")).(string)
 	if !auth {
-		a.Log.Errorln(ctx)
+		log.Println(ctx)
 		utils.RespondWithError(w, http.StatusUnauthorized, errs.Unauthorized)
 		return
 	}
@@ -149,7 +150,7 @@ func (a *App) Follow(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
@@ -162,20 +163,20 @@ func (a *App) Unfollow(w http.ResponseWriter, r *http.Request) {
 	usernameID := ctx.Value(middleware.UsernameIDKeys("username_id")).(int64)
 	username := ctx.Value(middleware.UsernameIDKeys("username")).(string)
 	if !auth {
-		a.Log.Errorln(ctx)
+		log.Println(ctx)
 		utils.RespondWithError(w, http.StatusUnauthorized, errs.Unauthorized)
 		return
 	}
 
 	response, err := a.DB.Exec("DELETE FROM User_Follower WHERE user_id=$1 AND follower_id=$2", usernameID, followerID)
 	if err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
 	count, err := response.RowsAffected()
 	if err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}

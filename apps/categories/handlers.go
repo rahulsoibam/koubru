@@ -2,6 +2,7 @@ package categories
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/rahulsoibam/koubru/errs"
@@ -31,7 +32,7 @@ func (a *App) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
@@ -67,13 +68,13 @@ func (a *App) Create(w http.ResponseWriter, r *http.Request) {
 	cres, err = a.AuthCreateQuery(userID, c)
 	if err != nil {
 		if e, ok := err.(*pq.Error); ok {
-			a.Log.Errorln(e, e.Detail, e.Code)
+			log.Println(e, e.Detail, e.Code)
 			if e.Code == "23505" {
 				utils.RespondWithError(w, http.StatusBadRequest, errs.CategoryAlreadyExists)
 				return
 			}
 		}
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
@@ -94,7 +95,7 @@ func (a *App) Get(w http.ResponseWriter, r *http.Request) {
 		category, err = a.GetQuery(categoryID)
 	}
 	if err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
@@ -108,7 +109,7 @@ func (a *App) Follow(w http.ResponseWriter, r *http.Request) {
 	followerID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
 
 	if !auth {
-		a.Log.Errorln(errs.UnintendedExecution)
+		log.Println(errs.UnintendedExecution)
 		utils.RespondWithError(w, http.StatusUnauthorized, errs.Unauthorized)
 		return
 	}
@@ -121,7 +122,7 @@ func (a *App) Follow(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
@@ -134,19 +135,19 @@ func (a *App) Unfollow(w http.ResponseWriter, r *http.Request) {
 	categoryID := ctx.Value(middleware.CategoryKeys("category_id")).(int64)
 	followerID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
 	if !auth {
-		a.Log.Errorln(errs.UnintendedExecution)
+		log.Println(errs.UnintendedExecution)
 		utils.RespondWithError(w, http.StatusUnauthorized, errs.Unauthorized)
 		return
 	}
 	response, err := a.DB.Exec("DELETE FROM Category_Follower WHERE category_id=$1 AND follower_id=$2", categoryID, followerID)
 	if err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
 	count, err := response.RowsAffected()
 	if err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
@@ -170,7 +171,7 @@ func (a *App) Followers(w http.ResponseWriter, r *http.Request) {
 		followers, err = a.FollowersQuery(categoryID)
 	}
 	if err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
@@ -191,7 +192,7 @@ func (a *App) Topics(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err != nil {
-		a.Log.Errorln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
