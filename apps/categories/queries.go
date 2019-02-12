@@ -3,6 +3,7 @@ package categories
 import (
 	"context"
 	"database/sql"
+	"log"
 
 	"github.com/rahulsoibam/koubru/middleware"
 
@@ -10,13 +11,13 @@ import (
 )
 
 // DONE
-func (a *App) ListQuery(ctx context.Context) ([]types.Category_, error) {
+func (a *App) ListQuery(ctx context.Context) ([]types.CategoryForList, error) {
 	q := ctx.Value(middleware.SearchKeys("q")).(string)
 	limit := ctx.Value(middleware.PaginationKeys("per_page")).(int)
 	offset := ctx.Value(middleware.PaginationKeys("db_offset")).(int)
 
 	var err error
-	cs := []types.Category_{}
+	cs := []types.CategoryForList{}
 
 	// Query to list all categories by follower count
 	sqlQuery := `
@@ -31,30 +32,39 @@ func (a *App) ListQuery(ctx context.Context) ([]types.Category_, error) {
 	LIMIT $2 OFFSET $3
 	`
 	rows, err := a.DB.Query(sqlQuery, q, limit, offset)
-	if err == sql.ErrNoRows {
-		return cs, nil
-	} else if err != nil {
+	if err != nil {
+		log.Println(err)
+		if err == sql.ErrNoRows {
+			return cs, nil
+		}
 		return nil, err
 	}
 
 	defer rows.Close()
 	for rows.Next() {
-		var c types.Category_
+		c := types.CategoryForList{}
 		err := rows.Scan(&c.ID, &c.Name, &c.IsFollowing)
 		if err != nil {
-			return nil, err
+			log.Println(err)
+			return cs, err
 		}
 		cs = append(cs, c)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		log.Println(err)
+		return cs, err
 	}
 	return cs, nil
 }
 
 // DONE
-func (a *App) AuthListQuery(ctx context.Context, userID int64) ([]types.Category_, error) {
+func (a *App) AuthListQuery(ctx context.Context, userID int64) ([]types.CategoryForList, error) {
 	q := ctx.Value(middleware.SearchKeys("q")).(string)
 	limit := ctx.Value(middleware.PaginationKeys("per_page")).(int)
 	offset := ctx.Value(middleware.PaginationKeys("db_offset")).(int)
-	cs := []types.Category_{}
+	cs := []types.CategoryForList{}
 
 	// Query to list all categories and put following ones at the top
 	sqlQuery := `
@@ -71,20 +81,29 @@ func (a *App) AuthListQuery(ctx context.Context, userID int64) ([]types.Category
 	var err error
 
 	rows, err := a.DB.Query(sqlQuery, userID, q, limit, offset)
-	if err == sql.ErrNoRows {
-		return cs, nil
-	} else if err != nil {
+	if err != nil {
+		log.Println(err)
+		if err == sql.ErrNoRows {
+			return cs, nil
+		}
 		return cs, err
 	}
 
 	defer rows.Close()
 	for rows.Next() {
-		var c types.Category_
+		c := types.CategoryForList{}
 		err := rows.Scan(&c.ID, &c.Name, &c.IsFollowing)
 		if err != nil {
+			log.Println(err)
 			return cs, err
 		}
 		cs = append(cs, c)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		log.Println(err)
+		return cs, err
 	}
 	return cs, nil
 }
@@ -100,23 +119,26 @@ func (a *App) AuthCreateQuery(userID int64, c types.NewCategory) (types.Category
 	err = tx.QueryRow("INSERT INTO category (name, creator_id) VALUES ($1, $2) RETURNING category_id", c.Name, userID).Scan(&categoryID)
 	if err != nil {
 		tx.Rollback()
+		log.Println(err)
 		return cres, err
 	}
 
 	_, err = tx.Exec("INSERT INTO category_follower (category_id, follower_id) VALUES ($1, $2)", categoryID, userID)
 	if err != nil {
 		tx.Rollback()
+		log.Println(err)
 		return cres, err
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return cres, nil
+		log.Println(err)
+		return cres, err
 	}
 
-	// TODO GET CATEGORY PAGE
 	cres, err = a.AuthGetQuery(userID, categoryID)
 	if err != nil {
+		log.Println(err)
 		return cres, err
 	}
 
@@ -135,6 +157,7 @@ func (a *App) AuthGetQuery(userID int64, categoryID int64) (types.Category, erro
 		u.full_name,
         u.picture,
 		CASE WHEN EXISTS (SELECT 1 from category_follower cf WHERE cf.category_id=c.category_id AND cf.follower_id=$1) THEN 1 ELSE 0 END AS is_following,
+		CASE WHEN u.user_id = $1 THEN 1 ELSE 0 END AS is_self,
 		(select count(*) from topic_category where category_id=c.category_id) as topics_count,
 		(select count(*) from category_follower where category_id=c.category_id) as followers_count
     FROM
@@ -143,14 +166,14 @@ func (a *App) AuthGetQuery(userID int64, categoryID int64) (types.Category, erro
         c.category_id=$2
 	`
 
-	err := a.DB.QueryRow(sqlQuery, userID, categoryID).Scan(&c.ID, &c.Name, &c.CreatedOn, &c.CreatedBy.Username, &c.CreatedBy.FullName, &c.CreatedBy.Picture, &c.IsFollowing, &c.Counts.Topics, &c.Counts.Followers)
+	err := a.DB.QueryRow(sqlQuery, userID, categoryID).Scan(&c.ID, &c.Name, &c.CreatedOn, &c.CreatedBy.Username, &c.CreatedBy.FullName, &c.CreatedBy.Picture, &c.IsFollowing, &c.CreatedBy.IsSelf, &c.Counts.Topics, &c.Counts.Followers)
 	if err != nil {
+		log.Println(err)
 		if err == sql.ErrNoRows {
 			return c, nil
 		}
 		return c, err
 	}
-
 	return c, nil
 }
 
@@ -166,6 +189,8 @@ func (a *App) GetQuery(categoryID int64) (types.Category, error) {
 		u.full_name,
 		u.picture,
 		0 as is_following,
+		0 as is_following_user,
+		0 as is_self,
 		(select count(*) from topic_category where category_id=c.category_id) as topics_count,
 		(select count(*) from category_follower where category_id=c.category_id) as followers_count
     FROM
@@ -174,8 +199,9 @@ func (a *App) GetQuery(categoryID int64) (types.Category, error) {
         c.category_id=$1
 	`
 
-	err := a.DB.QueryRow(sqlQuery, categoryID).Scan(&c.ID, &c.Name, &c.CreatedOn, &c.CreatedBy.Username, &c.CreatedBy.FullName, &c.CreatedBy.Picture, &c.IsFollowing, &c.Counts.Topics, &c.Counts.Followers)
+	err := a.DB.QueryRow(sqlQuery, categoryID).Scan(&c.ID, &c.Name, &c.CreatedOn, &c.CreatedBy.Username, &c.CreatedBy.FullName, &c.CreatedBy.Picture, &c.IsFollowing, &c.CreatedBy.IsFollowing, &c.CreatedBy.IsSelf, &c.Counts.Topics, &c.Counts.Followers)
 	if err != nil {
+		log.Println(err)
 		if err == sql.ErrNoRows {
 			return c, nil
 		}
@@ -186,15 +212,16 @@ func (a *App) GetQuery(categoryID int64) (types.Category, error) {
 }
 
 // TODO ADD PAGINATION
-func (a *App) AuthFollowersQuery(userID int64, categoryID int64) ([]types.User_, error) {
-	fs := []types.User_{}
+func (a *App) AuthFollowersQuery(userID int64, categoryID int64) ([]types.UserForFollowList, error) {
+	fs := []types.UserForFollowList{}
 	sqlQuery := `
 	SELECT
         u.username,
         u.full_name,
-        u.picture,
-        CASE WHEN cf.follower_id=$1 THEN 1 ELSE 0 END AS is_self,
-        CASE WHEN EXISTS (SELECT 1 FROM user_follower uf where uf.user_id=u.user_id AND uf.follower_id=$1) THEN 1 ELSE 0 END AS is_following
+		u.picture,
+		cf.followed_on,
+        CASE WHEN EXISTS (SELECT 1 FROM user_follower uf where uf.user_id=u.user_id AND uf.follower_id=$1) THEN 1 ELSE 0 END AS is_following,
+        CASE WHEN u.user_id=$1 THEN 1 ELSE 0 END AS is_self
     FROM
         KUser u INNER JOIN Category_Follower cf ON u.user_id = cf.follower_id
     WHERE cf.category_id=$2
@@ -203,6 +230,7 @@ func (a *App) AuthFollowersQuery(userID int64, categoryID int64) ([]types.User_,
 
 	rows, err := a.DB.Query(sqlQuery, userID, categoryID)
 	if err != nil {
+		log.Println(err)
 		if err == sql.ErrNoRows {
 			return fs, nil
 		}
@@ -211,36 +239,39 @@ func (a *App) AuthFollowersQuery(userID int64, categoryID int64) ([]types.User_,
 
 	defer rows.Close()
 	for rows.Next() {
-		f := types.User_{}
-		err := rows.Scan(&f.Username, &f.FullName, &f.Picture, &f.IsSelf, &f.IsFollowing)
+		f := types.UserForFollowList{}
+		err := rows.Scan(&f.Username, &f.FullName, &f.Picture, &f.IsFollowing, &f.IsSelf)
 		if err != nil {
+			log.Println(err)
 			return fs, err
 		}
 		fs = append(fs, f)
 	}
 	err = rows.Err()
 	if err != nil {
+		log.Println(err)
 		return fs, err
 	}
 
-	// No errors found, return nil as errors
 	return fs, nil
-
 }
 
 // TODO ADD PAGINATION
-func (a *App) FollowersQuery(categoryID int64) ([]types.User_, error) {
-	fs := []types.User_{}
+func (a *App) FollowersQuery(categoryID int64) ([]types.UserForFollowList, error) {
+	fs := []types.UserForFollowList{}
 	// List followers of a category ordered by their ids
 	sqlQuery := `
 	SELECT
         u.username,
         u.full_name,
-        u.picture
+		u.picture,
+		cf.followed_on,
+		0 as is_following,
+		0 as is_self
     FROM
         KUser u INNER JOIN Category_Follower cf on u.user_id = cf.follower_id left join user_follower uf on u.user_id=uf.user_id
     WHERE cf.category_id=$1
-    GROUP BY u.user_id
+    GROUP BY u.user_id, cf.followed_on
     ORDER BY (SELECT count(uf.follower_id)) DESC
 	`
 
@@ -249,29 +280,31 @@ func (a *App) FollowersQuery(categoryID int64) ([]types.User_, error) {
 		if err == sql.ErrNoRows {
 			return fs, nil
 		}
+		log.Println(err)
 		return fs, err
 	}
 
 	defer rows.Close()
 	for rows.Next() {
-		f := types.User_{}
-		err := rows.Scan(&f.Username, &f.FullName, &f.Picture) // Need only scan these three fields, others will be initialized to false by default
+		f := types.UserForFollowList{}
+		err := rows.Scan(&f.Username, &f.FullName, &f.Picture, &f.FollowedOn, &f.IsFollowing, &f.IsSelf) // Need only scan these three fields, others will be initialized to false by default
 		if err != nil {
+			log.Println(err)
 			return fs, err
 		}
 		fs = append(fs, f)
 	}
 	err = rows.Err()
 	if err != nil {
+		log.Println(err)
 		return fs, err
 	}
-	// No errors found, return nil as error
 	return fs, nil
 }
 
 // TODO ADD PAGINATION
-func (a *App) AuthTopicsQuery(userID int64, categoryID int64) ([]types.Topic_, error) {
-	ts := []types.Topic_{}
+func (a *App) AuthTopicsQuery(userID int64, categoryID int64) ([]types.TopicForList, error) {
+	ts := []types.TopicForList{}
 	// List all topics of a category sorted by follower count then in chronologial order
 	sqlQuery := `
 	SELECT
@@ -279,11 +312,13 @@ func (a *App) AuthTopicsQuery(userID int64, categoryID int64) ([]types.Topic_, e
 		t.title,
 		t.details,
 		t.created_on,
+		coalesce(json_agg(json_build_object('id',c.category_id,'name',c.name)) FILTER (WHERE c.category_id IS NOT NULL OR c.name IS NOT NULL), '[]'::json),
+		CASE WHEN EXISTS (SELECT 1 FROM topic_follower tofo WHERE tofo.topic_id=t.topic_id AND tofo.follower_id=$1) THEN 1 ELSE 0 END AS is_following,
 		u.username,
 		u.full_name,
 		u.picture,
-		coalesce(json_agg(json_build_object('id',c.category_id,'name',c.name)) FILTER (WHERE c.category_id IS NOT NULL OR c.name IS NOT NULL), '[]'::json),
-		CASE WHEN EXISTS (SELECT 1 FROM topic_follower tofo WHERE tofo.topic_id=t.topic_id AND tofo.follower_id=$1) THEN 1 ELSE 0 END AS is_following
+		CASE WHEN EXISTS (SELECT 1 FROM user_follower WHERE user_id=u.user_id AND follower_id=$1) THEN 1 ELSE 0 END AS is_following_user,
+		CASE WHEN u.user_id = $1 as is_self
 	FROM topic t inner join kuser u on t.creator_id=u.user_id inner join topic_category tc on t.topic_id = tc.topic_id and tc.category_id = $2
 	inner join topic_category tc2 on tc2.topic_id=t.topic_id
 	inner join category c on c.category_id=tc2.category_id
@@ -292,6 +327,7 @@ func (a *App) AuthTopicsQuery(userID int64, categoryID int64) ([]types.Topic_, e
 	`
 	rows, err := a.DB.Query(sqlQuery, userID, categoryID)
 	if err != nil {
+		log.Println(err)
 		if err == sql.ErrNoRows {
 			return ts, nil
 		}
@@ -300,10 +336,11 @@ func (a *App) AuthTopicsQuery(userID int64, categoryID int64) ([]types.Topic_, e
 
 	defer rows.Close()
 	for rows.Next() {
-		t := types.Topic_{}
+		t := types.TopicForList{}
 		// IsFollowing will default to false
-		err := rows.Scan(&t.ID, &t.Title, &t.Details, &t.CreatedOn, &t.CreatedBy.Username, &t.CreatedBy.FullName, &t.CreatedBy.Picture, (*[]byte)(&t.Categories), &t.IsFollowing)
+		err := rows.Scan(&t.ID, &t.Title, &t.Details, &t.CreatedOn, &t.IsFollowing, (*[]byte)(&t.Categories), &t.CreatedBy.Username, &t.CreatedBy.FullName, &t.CreatedBy.Picture, &t.CreatedBy.IsFollowing, &t.CreatedBy.IsSelf)
 		if err != nil {
+			log.Println(err)
 			return ts, err
 		}
 		ts = append(ts, t)
@@ -311,14 +348,15 @@ func (a *App) AuthTopicsQuery(userID int64, categoryID int64) ([]types.Topic_, e
 
 	err = rows.Err()
 	if err != nil {
+		log.Println(err)
 		return ts, err
 	}
 	return ts, nil
 }
 
 // TODO ADD PAGINATION
-func (a *App) TopicsQuery(categoryID int64) ([]types.Topic_, error) {
-	ts := []types.Topic_{}
+func (a *App) TopicsQuery(categoryID int64) ([]types.TopicForList, error) {
+	ts := []types.TopicForList{}
 	// List all topics of a category sorted by follower count then in chronologial order
 	sqlQuery := `
 	SELECT
@@ -326,10 +364,13 @@ func (a *App) TopicsQuery(categoryID int64) ([]types.Topic_, error) {
 		t.title,
 		t.details,
 		t.created_on,
+		coalesce(json_agg(json_build_object('id',c.category_id,'name',c.name)) FILTER (WHERE c.category_id IS NOT NULL OR c.name IS NOT NULL), '[]'::json)
+		0 as is_following,
 		u.username,
 		u.full_name,
 		u.picture,
-		coalesce(json_agg(json_build_object('id',c.category_id,'name',c.name)) FILTER (WHERE c.category_id IS NOT NULL OR c.name IS NOT NULL), '[]'::json)
+		0 as is_following_user,
+		0 as is_self
 	FROM topic t inner join kuser u on t.creator_id=u.user_id inner join topic_category tc on t.topic_id = tc.topic_id and tc.category_id = $1
 	inner join topic_category tc2 on tc2.topic_id=t.topic_id
 	inner join category c on c.category_id=tc2.category_id
@@ -338,6 +379,7 @@ func (a *App) TopicsQuery(categoryID int64) ([]types.Topic_, error) {
 	`
 	rows, err := a.DB.Query(sqlQuery, categoryID)
 	if err != nil {
+		log.Println(err)
 		if err == sql.ErrNoRows {
 			return ts, nil
 		}
@@ -346,13 +388,19 @@ func (a *App) TopicsQuery(categoryID int64) ([]types.Topic_, error) {
 
 	defer rows.Close()
 	for rows.Next() {
-		t := types.Topic_{}
-		// IsFollowing will default to false
-		err := rows.Scan(&t.ID, &t.Title, &t.Details, &t.CreatedOn, &t.CreatedBy.Username, &t.CreatedBy.FullName, &t.CreatedBy.Picture, (*[]byte)(&t.Categories))
+		t := types.TopicForList{}
+		err := rows.Scan(&t.ID, &t.Title, &t.Details, &t.CreatedOn, (*[]byte)(&t.Categories), &t.IsFollowing, &t.CreatedBy.Username, &t.CreatedBy.FullName, &t.CreatedBy.Picture, &t.CreatedBy.IsFollowing, &t.CreatedBy.IsSelf)
 		if err != nil {
+			log.Println(err)
 			return ts, err
 		}
 		ts = append(ts, t)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		log.Println(err)
+		return ts, err
 	}
 
 	return ts, nil

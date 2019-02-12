@@ -23,7 +23,7 @@ func (m *Middleware) RequireAuthorization(next http.Handler) http.Handler {
 		authHeader := r.Header.Get("Authorization")
 		authToken, err := authutils.HeaderToTokenString(authHeader)
 		if err != nil {
-			m.Log.Infoln(err)
+			log.Println(err)
 			utils.RespondWithError(w, http.StatusUnauthorized, err) // Directly returning err to user is harmless here. Custom token with harmless message
 			return
 		}
@@ -66,7 +66,7 @@ func (m *Middleware) OptionalAuthorization(next http.Handler) http.Handler {
 				next.ServeHTTP(w, r.WithContext(ctx))
 				return
 			}
-			m.Log.Infoln(err)
+			log.Println(err)
 			utils.RespondWithError(w, http.StatusUnauthorized, errs.Unauthorized)
 			return
 		}
@@ -74,12 +74,12 @@ func (m *Middleware) OptionalAuthorization(next http.Handler) http.Handler {
 		// Get user id from redis session store cache
 		response, err := m.AuthCache.Get(authToken).Result()
 		if err == redis.Nil {
-			m.Log.Infoln(err)
+			log.Println(err)
 			utils.RespondWithError(w, http.StatusUnauthorized, errs.Unauthorized)
 			return
 		} else if err != nil {
 			// If there is an error fetching from the cache, return an internal server error
-			m.Log.Infoln(err)
+			log.Println(err)
 			utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 			return
 		}
@@ -87,7 +87,7 @@ func (m *Middleware) OptionalAuthorization(next http.Handler) http.Handler {
 		// Convert to integer
 		userID, err = strconv.ParseInt(response, 10, 64)
 		if err != nil {
-			m.Log.Infoln(err)
+			log.Println(err)
 			utils.RespondWithError(w, http.StatusBadRequest, errs.Unauthorized)
 		}
 

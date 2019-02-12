@@ -17,7 +17,7 @@ func (a *App) Get(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
 	if !auth {
-		log.Println(ctx)
+		log.Println(ctx, errs.UnintendedExecution)
 		utils.RespondWithError(w, http.StatusUnauthorized, errs.Unauthorized)
 		return
 	}
@@ -27,12 +27,11 @@ func (a *App) Get(w http.ResponseWriter, r *http.Request) {
 
 	user, err = a.AuthGetQuery(userID)
 	if err != nil {
+		log.Println(err)
 		if err == sql.ErrNoRows {
-			a.Log.Infoln(err)
 			utils.RespondWithError(w, http.StatusNotFound, errs.UserNotFound)
 			return
 		}
-		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -49,7 +48,7 @@ func (a *App) Followers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	followers := []types.Follower{}
+	followers := []types.UserForFollowList{}
 	var err error
 	followers, err = a.AuthFollowersQuery(userID)
 	if err != nil {
@@ -70,7 +69,7 @@ func (a *App) Following(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	following := []types.Following{}
+	following := []types.UserForFollowList{}
 	var err error
 	following, err = a.AuthFollowingQuery(userID)
 	if err != nil {
@@ -112,7 +111,7 @@ func (a *App) Topics(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	topics := []types.Topic_{}
+	topics := []types.TopicForList{}
 	var err error
 	topics, err = a.AuthTopicsQuery(userID)
 	if err != nil {

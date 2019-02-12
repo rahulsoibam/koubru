@@ -23,7 +23,7 @@ func (m *Middleware) CategoryID(next http.Handler) http.Handler {
 		categoryIDString := chi.URLParam(r, "category_id")
 		categoryID, err := strconv.ParseInt(categoryIDString, 10, 64)
 		if err != nil {
-			m.Log.Infoln(err)
+			log.Println(err)
 			utils.RespondWithError(w, http.StatusBadRequest, errs.BadRequest)
 			return
 		}
@@ -31,7 +31,7 @@ func (m *Middleware) CategoryID(next http.Handler) http.Handler {
 		err = m.DB.QueryRow("select category_id, name from category where category_id = $1", categoryID).Scan(&ctxcategory.ID, &ctxcategory.Name)
 		if err != nil {
 			if err == sql.ErrNoRows {
-				m.Log.Infoln(err)
+				log.Println(err)
 				utils.RespondWithError(w, http.StatusNotFound, errs.CategoryNotFound)
 			}
 			log.Println(err)

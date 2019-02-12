@@ -43,12 +43,12 @@ func (a *App) Get(w http.ResponseWriter, r *http.Request) {
 		user, err = a.GetQuery(usernameID)
 	}
 	if err != nil {
+		log.Println(err)
 		if err == sql.ErrNoRows {
-			a.Log.Infoln(err)
+			log.Println(err, errs.UnintendedExecution)
 			utils.RespondWithError(w, http.StatusNotFound, errs.UserNotFound)
 			return
 		}
-		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}
@@ -62,7 +62,7 @@ func (a *App) Followers(w http.ResponseWriter, r *http.Request) {
 	usernameID := ctx.Value(middleware.UsernameIDKeys("username_id")).(int64)
 	// username := ctx.Value(middleware.UsernameIDKeys("username")).(string)
 
-	followers := []types.Follower{}
+	followers := []types.UserForFollowList{}
 	var err error
 	if auth {
 		followers, err = a.AuthFollowersQuery(userID, usernameID)
@@ -85,7 +85,7 @@ func (a *App) Following(w http.ResponseWriter, r *http.Request) {
 	usernameID := ctx.Value(middleware.UsernameIDKeys("username_id")).(int64)
 	// username := ctx.Value(middleware.UsernameIDKeys("username")).(string)
 
-	following := []types.Following{}
+	following := []types.UserForFollowList{}
 	var err error
 	if auth {
 		following, err = a.AuthFollowingQuery(userID, usernameID)
@@ -108,7 +108,7 @@ func (a *App) Topics(w http.ResponseWriter, r *http.Request) {
 	usernameID := ctx.Value(middleware.UsernameIDKeys("username_id")).(int64)
 	// username := ctx.Value(middleware.UsernameIDKeys("username")).(string)
 
-	topics := []types.Topic_{}
+	topics := []types.TopicForList{}
 	var err error
 	if auth {
 		topics, err = a.AuthTopicsQuery(userID, usernameID)
@@ -158,9 +158,10 @@ func (a *App) Follow(w http.ResponseWriter, r *http.Request) {
 
 	_, err := a.DB.Exec("INSERT INTO User_Follower (user_id, follower_id) VALUES ($1, $2)", usernameID, followerID)
 	if err != nil {
+		log.Println(err)
 		if e, ok := err.(*pq.Error); ok {
 			if e.Code == "23505" {
-				a.Log.Infoln(e)
+				log.Println(e)
 				utils.RespondWithError(w, http.StatusBadRequest, errs.UserFollowAlreadyFollowing)
 				return
 			}

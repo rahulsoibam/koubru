@@ -56,7 +56,7 @@ func (a *App) Login(w http.ResponseWriter, r *http.Request) {
 
 	err = json.NewDecoder(r.Body).Decode(&creds)
 	if err != nil {
-		a.Log.Infoln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusBadRequest, err)
 		return
 	}
@@ -79,7 +79,7 @@ func (a *App) Login(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch err {
 		case sql.ErrNoRows:
-			a.Log.Infoln(err)
+			log.Println(err)
 			utils.RespondWithError(w, http.StatusNotFound, errs.UserNotFound)
 			return
 		default:
@@ -94,7 +94,7 @@ func (a *App) Login(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch err {
 		case sql.ErrNoRows:
-			a.Log.Infoln(err)
+			log.Println(err)
 			utils.RespondWithError(w, http.StatusBadRequest, errs.NoPasswordSet)
 			return
 		default:
@@ -143,12 +143,12 @@ func (a *App) Register(w http.ResponseWriter, r *http.Request) {
 	err = json.NewDecoder(r.Body).Decode(&nu)
 	defer r.Body.Close()
 	if err != nil {
-		a.Log.Infoln(err, nu)
+		log.Println(err, nu)
 		utils.RespondWithError(w, http.StatusBadRequest, err)
 		return
 	}
 	if err := nu.Validate(); err != nil {
-		a.Log.Infoln(err, nu)
+		log.Println(err, nu)
 		utils.RespondWithError(w, http.StatusBadRequest, err)
 		return
 	}
@@ -156,7 +156,7 @@ func (a *App) Register(w http.ResponseWriter, r *http.Request) {
 	n := a.AuthCache.SIsMember("usernames", nu.Username)
 	if n.Val() {
 		errUsernameAlreadyExist := errors.New("Username " + nu.Username + " already exists. Please enter another username")
-		a.Log.Infoln()
+		log.Println()
 		utils.RespondWithError(w, http.StatusBadRequest, errUsernameAlreadyExist)
 		return
 	}
@@ -171,7 +171,7 @@ func (a *App) Register(w http.ResponseWriter, r *http.Request) {
 	userID, err := a.dbRegisterUser(nu)
 	if err != nil {
 		if e, ok := err.(*pq.Error); ok {
-			a.Log.Infoln(e, e.Detail)
+			log.Println(e, e.Detail)
 			utils.RespondWithError(w, http.StatusBadRequest, errors.New(e.Detail))
 			return
 		}
@@ -227,12 +227,12 @@ func (a *App) Facebook(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("requesting facebook")
 	response, err := http.Get("https://graph.facebook.com/me?fields=id,name,picture.type(large),email&access_token=" + facebookAccessToken + "&appsecret_proof=" + appSecretProof)
 	if err != nil {
-		a.Log.Infoln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusBadRequest, err)
 		return
 	}
 	if response.StatusCode != http.StatusOK {
-		a.Log.Infoln(response.StatusCode, response.Status)
+		log.Println(response.StatusCode, response.Status)
 		utils.RespondWithError(w, http.StatusBadRequest, errors.New("Error fetching details from facebook. Check the token and try again"))
 		return
 	}
@@ -244,7 +244,7 @@ func (a *App) Facebook(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("decoding json")
 	err = json.NewDecoder(response.Body).Decode(&fu)
 	if err != nil {
-		a.Log.Infoln(err, fu)
+		log.Println(err, fu)
 		utils.RespondWithError(w, http.StatusBadRequest, errs.BadRequest)
 		return
 	}
@@ -423,7 +423,7 @@ func (a *App) CheckUsername(w http.ResponseWriter, r *http.Request) {
 	username := r.FormValue("username")
 	username = strings.ToLower(username)
 	if err := utils.ValidateUsername(username); err != nil {
-		a.Log.Infoln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusBadRequest, err)
 		return
 	}

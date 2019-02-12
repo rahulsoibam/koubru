@@ -23,7 +23,7 @@ func (m *Middleware) OpinionCtx(next http.Handler) http.Handler {
 		opinionIDString := chi.URLParam(r, "opinion_id")
 		opinionID, err := strconv.ParseInt(opinionIDString, 10, 64)
 		if err != nil {
-			m.Log.Infoln(err)
+			log.Println(err)
 			utils.RespondWithError(w, http.StatusBadRequest, errs.BadRequest)
 			return
 		}
@@ -31,7 +31,7 @@ func (m *Middleware) OpinionCtx(next http.Handler) http.Handler {
 		err = m.DB.QueryRow("select opinion_id, topic_id, creator_id from opinion where opinion_id = $1", opinionID).Scan(&ctxOpinion.ID, &ctxOpinion.TopicID, &ctxOpinion.CreatorID)
 		if err != nil {
 			if err == sql.ErrNoRows {
-				m.Log.Infoln(err)
+				log.Println(err)
 				utils.RespondWithError(w, http.StatusNotFound, errs.OpinionNotFound)
 				return
 			}

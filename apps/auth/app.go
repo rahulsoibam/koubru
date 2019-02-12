@@ -3,8 +3,6 @@ package auth
 import (
 	"database/sql"
 
-	"github.com/rahulsoibam/koubru/logger"
-
 	"github.com/go-redis/redis"
 	"github.com/rahulsoibam/koubru/authutils"
 	"github.com/rahulsoibam/koubru/middleware"
@@ -17,5 +15,4 @@ type App struct {
 	DB           *sql.DB
 	AuthDB       *sql.DB
 	Argon2Params *authutils.Params
-	Log          *logger.Logger
 }

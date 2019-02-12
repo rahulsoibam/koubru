@@ -20,7 +20,6 @@ func (a *App) List(w http.ResponseWriter, r *http.Request) {
 	topics := []types.SearchTopic{}
 	var err error
 	topics, err = a.ListQuery(ctx)
-
 	if err != nil {
 		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
@@ -34,21 +33,21 @@ func (a *App) Create(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
 	if !auth {
-		a.Log.Infoln(errs.Unauthorized)
+		log.Println(errs.UnintendedExecution)
 		utils.RespondWithError(w, http.StatusUnauthorized, errs.Unauthorized)
 		return
 	}
 	var t types.NewTopic
 	err := json.NewDecoder(r.Body).Decode(&t)
 	if err != nil {
-		a.Log.Infoln(err, r.Body)
+		log.Println(err, r.Body)
 		utils.RespondWithError(w, http.StatusBadRequest, errs.BadRequest)
 		return
 	}
 	defer r.Body.Close()
 	// Validate the topic
 	if err := t.Validate(); err != nil {
-		a.Log.Infoln(err)
+		log.Println(err)
 		utils.RespondWithError(w, http.StatusBadRequest, errs.BadRequest)
 		return
 	}
@@ -99,7 +98,7 @@ func (a *App) Followers(w http.ResponseWriter, r *http.Request) {
 	userID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
 	topicID := ctx.Value(middleware.TopicKeys("topic_id")).(int64)
 
-	followers := []types.User_{}
+	followers := []types.UserForFollowList{}
 	var err error
 	if auth {
 		followers, err = a.AuthFollowersQuery(userID, topicID)
@@ -127,14 +126,13 @@ func (a *App) Follow(w http.ResponseWriter, r *http.Request) {
 	}
 	_, err := a.DB.Exec("INSERT INTO Topic_Follower (topic_id, follower_id) VALUES ($1, $2)", topicID, followerID)
 	if err != nil {
+		log.Println(err)
 		if e, ok := err.(*pq.Error); ok {
 			if e.Code == "23505" {
-				a.Log.Infoln(err)
 				utils.RespondWithError(w, http.StatusBadRequest, errs.TopicFollowAlreadyFollowing)
 				return
 			}
 		}
-		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 		return
 	}

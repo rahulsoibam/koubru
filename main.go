@@ -12,7 +12,6 @@ import (
 	sendgrid "github.com/sendgrid/sendgrid-go"
 
 	"github.com/rahulsoibam/koubru/authutils"
-	"github.com/rahulsoibam/koubru/logger"
 	koubrumiddleware "github.com/rahulsoibam/koubru/middleware"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -51,7 +50,6 @@ var (
 	sendgridClient   *sendgrid.Client
 	argon2Params     *authutils.Params
 	koubruMiddleware *koubrumiddleware.Middleware
-	logg             *logger.Logger
 )
 
 // MaxUploadSize is the max upload size of videos (including accompanying form data) in bytes
@@ -59,7 +57,6 @@ const MaxUploadSize = 200 << 20
 
 func main() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Llongfile)
-	initializeLogger()
 	initializeDB()
 	initializeAuthDB()
 	initializeAuthCache()
@@ -81,7 +78,6 @@ func main() {
 		DB:         db,
 		Cache:      cache,
 		Middleware: koubruMiddleware,
-		Log:        logg,
 		Flake:      flake,
 		Uploader:   uploader,
 	}
@@ -91,7 +87,6 @@ func main() {
 		Middleware: koubruMiddleware,
 		DB:         db,
 		AuthDB:     authDB,
-		Log:        logg,
 		// SendgridClient: sendgridClient,
 		Argon2Params: argon2Params,
 	}
@@ -101,7 +96,6 @@ func main() {
 		DB:         db,
 		Cache:      cache,
 		Middleware: koubruMiddleware,
-		Log:        logg,
 	}
 	r.Mount("/user", ua.Routes())
 
@@ -109,20 +103,17 @@ func main() {
 		DB:         db,
 		Cache:      cache,
 		Middleware: koubruMiddleware,
-		Log:        logg,
 	}
 	r.Mount("/users", usa.Routes())
 
 	ca := categories.App{
 		DB:         db,
 		Middleware: koubruMiddleware,
-		Log:        logg,
 	}
 
 	ta := topics.App{
 		DB:         db,
 		Middleware: koubruMiddleware,
-		Log:        logg,
 	}
 	r.Mount("/topics", ta.Routes())
 
@@ -136,10 +127,6 @@ func main() {
 
 	log.Fatal(http.ListenAndServe(os.Getenv("API_PORT"), r))
 
-}
-
-func initializeLogger() {
-	logg = logger.NewLogger(os.Stderr, os.Stdout, os.Stdout, os.Stderr)
 }
 
 // Initialize sets up the database connection, s3 session and routes for the app
@@ -244,6 +231,5 @@ func initializeKoubruMiddleware() {
 	koubruMiddleware = &koubrumiddleware.Middleware{
 		AuthCache: authCache,
 		DB:        db,
-		Log:       logg,
 	}
 }

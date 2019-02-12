@@ -15,11 +15,10 @@ import (
 
 // List all categories
 func (a *App) List(w http.ResponseWriter, r *http.Request) {
-
 	ctx := r.Context()
 	userID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
 
-	categories := []types.Category_{}
+	categories := []types.CategoryForList{}
 	var err error
 	// Check authorization and perform query
 	if auth {
@@ -27,7 +26,6 @@ func (a *App) List(w http.ResponseWriter, r *http.Request) {
 	} else {
 		categories, err = a.ListQuery(ctx)
 	}
-
 	if err != nil {
 		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
@@ -41,7 +39,7 @@ func (a *App) Create(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
 	if !auth {
-		a.Log.Infoln(errs.Unauthorized)
+		log.Println(errs.Unauthorized)
 		utils.RespondWithError(w, http.StatusUnauthorized, errs.Unauthorized)
 		return
 	}
@@ -50,12 +48,12 @@ func (a *App) Create(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&c)
 	defer r.Body.Close()
 	if err != nil {
-		a.Log.Infoln(err, r.Body)
+		log.Println(err, r.Body)
 		utils.RespondWithError(w, http.StatusBadRequest, errs.BadRequest)
 		return
 	}
 	if err = c.Validate(); err != nil {
-		a.Log.Infoln(err, c)
+		log.Println(err, c)
 		utils.RespondWithError(w, http.StatusBadRequest, errs.BadRequest)
 		return
 	}
@@ -114,7 +112,7 @@ func (a *App) Follow(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if e, ok := err.(*pq.Error); ok {
 			if e.Code == "23505" {
-				a.Log.Infoln(err)
+				log.Println(err)
 				utils.RespondWithError(w, http.StatusBadRequest, errs.CategoryFollowAlreadyFollowing)
 				return
 			}
@@ -160,7 +158,7 @@ func (a *App) Followers(w http.ResponseWriter, r *http.Request) {
 	categoryID := ctx.Value(middleware.CategoryKeys("category_id")).(int64)
 	userID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
 
-	followers := []types.User_{}
+	followers := []types.UserForFollowList{}
 	var err error
 	if auth {
 		followers, err = a.AuthFollowersQuery(userID, categoryID)
@@ -180,14 +178,13 @@ func (a *App) Topics(w http.ResponseWriter, r *http.Request) {
 	categoryID := ctx.Value(middleware.CategoryKeys("category_id")).(int64)
 	userID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
 
-	topics := []types.Topic_{}
+	topics := []types.TopicForList{}
 	var err error
 	if auth {
 		topics, err = a.AuthTopicsQuery(userID, categoryID)
 	} else {
 		topics, err = a.TopicsQuery(categoryID)
 	}
-
 	if err != nil {
 		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)

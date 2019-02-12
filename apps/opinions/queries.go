@@ -22,6 +22,7 @@ func (a *App) AuthListQuery(ctx context.Context, userID int64) ([]types.Opinion,
         u.username,
         u.full_name,
         u.picture,
+        case when exists(select 1 from user_follower where user_id=u.user_id and follower_id=$1) as is_following_user,
         case when o.creator_id=$1 then 1 else 0 end as is_self,
         t.topic_id,
         t.title,
@@ -55,6 +56,7 @@ func (a *App) AuthListQuery(ctx context.Context, userID int64) ([]types.Opinion,
 
 	rows, err := a.DB.Query(sqlQuery, userID, limit, offset)
 	if err != nil {
+		log.Println(err)
 		if err == sql.ErrNoRows {
 			return os, nil
 		}
@@ -64,8 +66,9 @@ func (a *App) AuthListQuery(ctx context.Context, userID int64) ([]types.Opinion,
 
 	for rows.Next() {
 		o := types.Opinion{}
-		err := rows.Scan(&o.ID, &o.CreatedBy.Username, &o.CreatedBy.FullName, &o.CreatedBy.Picture, &o.CreatedBy.IsSelf, &o.Topic.ID, &o.Topic.Title, &o.Topic.Details, (*[]byte)(&o.Topic.Categories), &o.Topic.IsFollowing, &o.IsAnonymous, &o.IsFollowing, pq.Array(&o.Thumbnails), &o.Sources.Hls, &o.Sources.Dash, &o.Sources.Aac, &o.Vote, &o.Reaction, &o.CreatedOn, &o.Counts.Views, &o.Counts.Upvotes, &o.Counts.Downvotes, &o.Counts.Followers, &o.Counts.Replies)
+		err := rows.Scan(&o.ID, &o.CreatedBy.Username, &o.CreatedBy.FullName, &o.CreatedBy.Picture, &o.CreatedBy.IsFollowing, &o.CreatedBy.IsSelf, &o.Topic.ID, &o.Topic.Title, &o.Topic.Details, (*[]byte)(&o.Topic.Categories), &o.Topic.IsFollowing, &o.IsAnonymous, &o.IsFollowing, pq.Array(&o.Thumbnails), &o.Sources.Hls, &o.Sources.Dash, &o.Sources.Aac, &o.Vote, &o.Reaction, &o.CreatedOn, &o.Counts.Views, &o.Counts.Upvotes, &o.Counts.Downvotes, &o.Counts.Followers, &o.Counts.Replies)
 		if err != nil {
+			log.Println(err)
 			return os, err
 		}
 		os = append(os, o)
@@ -73,6 +76,7 @@ func (a *App) AuthListQuery(ctx context.Context, userID int64) ([]types.Opinion,
 
 	err = rows.Err()
 	if err != nil {
+		log.Println(err)
 		return os, err
 	}
 
@@ -89,6 +93,7 @@ func (a *App) ListQuery(ctx context.Context) ([]types.Opinion, error) {
         u.username,
         u.full_name,
         u.picture,
+        0 as is_following_user,
         0 as is_self,
         t.topic_id,
         t.title,
@@ -121,6 +126,7 @@ func (a *App) ListQuery(ctx context.Context) ([]types.Opinion, error) {
 
 	rows, err := a.DB.Query(sqlQuery, limit, offset)
 	if err != nil {
+		log.Println(err)
 		if err == sql.ErrNoRows {
 			return os, nil
 		}
@@ -130,8 +136,9 @@ func (a *App) ListQuery(ctx context.Context) ([]types.Opinion, error) {
 
 	for rows.Next() {
 		o := types.Opinion{}
-		err := rows.Scan(&o.ID, &o.CreatedBy.Username, &o.CreatedBy.FullName, &o.CreatedBy.Picture, &o.CreatedBy.IsSelf, &o.Topic.ID, &o.Topic.Title, &o.Topic.Details, (*[]byte)(&o.Topic.Categories), &o.Topic.IsFollowing, &o.IsAnonymous, &o.IsFollowing, pq.Array(&o.Thumbnails), &o.Sources.Hls, &o.Sources.Dash, &o.Sources.Aac, &o.Vote, &o.Reaction, &o.CreatedOn, &o.Counts.Views, &o.Counts.Upvotes, &o.Counts.Downvotes, &o.Counts.Followers, &o.Counts.Replies)
+		err := rows.Scan(&o.ID, &o.CreatedBy.Username, &o.CreatedBy.FullName, &o.CreatedBy.Picture, &o.CreatedBy.IsFollowing, &o.CreatedBy.IsSelf, &o.Topic.ID, &o.Topic.Title, &o.Topic.Details, (*[]byte)(&o.Topic.Categories), &o.Topic.IsFollowing, &o.IsAnonymous, &o.IsFollowing, pq.Array(&o.Thumbnails), &o.Sources.Hls, &o.Sources.Dash, &o.Sources.Aac, &o.Vote, &o.Reaction, &o.CreatedOn, &o.Counts.Views, &o.Counts.Upvotes, &o.Counts.Downvotes, &o.Counts.Followers, &o.Counts.Replies)
 		if err != nil {
+			log.Println(err)
 			return os, err
 		}
 		os = append(os, o)
@@ -139,6 +146,7 @@ func (a *App) ListQuery(ctx context.Context) ([]types.Opinion, error) {
 
 	err = rows.Err()
 	if err != nil {
+		log.Println(err)
 		return os, err
 	}
 
@@ -153,6 +161,7 @@ func (a *App) AuthGetQuery(userID int64, opinionID int64) (types.Opinion, error)
         u.username,
         u.full_name,
         u.picture,
+        case when exists(select 1 from user_follower where user_id=u.user_id and follower_id=$1) as is_following_user,
         case when o.creator_id=$1 then 1 else 0 end as is_self,
         t.topic_id,
         t.title,
@@ -183,7 +192,7 @@ func (a *App) AuthGetQuery(userID int64, opinionID int64) (types.Opinion, error)
     GROUP BY o.opinion_id, u.user_id, t.topic_id, views, ov.vote
 	`
 
-	err := a.DB.QueryRow(sqlQuery, userID, opinionID).Scan(&o.ID, &o.CreatedBy.Username, &o.CreatedBy.FullName, &o.CreatedBy.Picture, &o.CreatedBy.IsSelf, &o.Topic.ID, &o.Topic.Title, &o.Topic.Details, (*[]byte)(&o.Topic.Categories), &o.Topic.IsFollowing, &o.IsAnonymous, &o.IsFollowing, pq.Array(&o.Thumbnails), &o.Sources.Hls, &o.Sources.Dash, &o.Sources.Aac, &o.Vote, &o.Reaction, &o.CreatedOn, &o.Counts.Views, &o.Counts.Upvotes, &o.Counts.Downvotes, &o.Counts.Followers, &o.Counts.Replies)
+	err := a.DB.QueryRow(sqlQuery, userID, opinionID).Scan(&o.ID, &o.CreatedBy.Username, &o.CreatedBy.FullName, &o.CreatedBy.Picture, &o.CreatedBy.IsFollowing, &o.CreatedBy.IsSelf, &o.Topic.ID, &o.Topic.Title, &o.Topic.Details, (*[]byte)(&o.Topic.Categories), &o.Topic.IsFollowing, &o.IsAnonymous, &o.IsFollowing, pq.Array(&o.Thumbnails), &o.Sources.Hls, &o.Sources.Dash, &o.Sources.Aac, &o.Vote, &o.Reaction, &o.CreatedOn, &o.Counts.Views, &o.Counts.Upvotes, &o.Counts.Downvotes, &o.Counts.Followers, &o.Counts.Replies)
 	if err != nil {
 		log.Println(err)
 		return o, err
@@ -200,6 +209,7 @@ func (a *App) GetQuery(opinionID int64) (types.Opinion, error) {
         u.username,
         u.full_name,
         u.picture,
+        0 as is_following_user,
         0 as is_self,
         t.topic_id,
         t.title,
@@ -229,9 +239,9 @@ func (a *App) GetQuery(opinionID int64) (types.Opinion, error) {
     GROUP BY o.opinion_id, u.user_id, t.topic_id, views
 	`
 
-	err := a.DB.QueryRow(sqlQuery, opinionID).Scan(&o.ID, &o.CreatedBy.Username, &o.CreatedBy.FullName, &o.CreatedBy.Picture, &o.CreatedBy.IsSelf, &o.Topic.ID, &o.Topic.Title, &o.Topic.Details, (*[]byte)(&o.Topic.Categories), &o.Topic.IsFollowing, &o.IsAnonymous, &o.IsFollowing, pq.Array(&o.Thumbnails), &o.Sources.Hls, &o.Sources.Dash, &o.Sources.Aac, &o.Vote, &o.Reaction, &o.CreatedOn, &o.Counts.Views, &o.Counts.Upvotes, &o.Counts.Downvotes, &o.Counts.Followers, &o.Counts.Replies)
-
+	err := a.DB.QueryRow(sqlQuery, opinionID).Scan(&o.ID, &o.CreatedBy.Username, &o.CreatedBy.FullName, &o.CreatedBy.Picture, &o.CreatedBy.IsFollowing, &o.CreatedBy.IsSelf, &o.Topic.ID, &o.Topic.Title, &o.Topic.Details, (*[]byte)(&o.Topic.Categories), &o.Topic.IsFollowing, &o.IsAnonymous, &o.IsFollowing, pq.Array(&o.Thumbnails), &o.Sources.Hls, &o.Sources.Dash, &o.Sources.Aac, &o.Vote, &o.Reaction, &o.CreatedOn, &o.Counts.Views, &o.Counts.Upvotes, &o.Counts.Downvotes, &o.Counts.Followers, &o.Counts.Replies)
 	if err != nil {
+		log.Println(err)
 		return o, err
 	}
 	return o, nil
@@ -285,6 +295,7 @@ func (a *App) AuthRepliesQuery(userID int64, opinionID int64) ([]types.Opinion, 
         u.username,
         u.full_name,
         u.picture,
+        case when exists(select 1 from user_follower where user_id=u.user_id and follower_id=$1) then 1 else 0 end as is_following_user,
         case when o.creator_id=$1 then 1 else 0 end as is_self,
         t.topic_id,
         t.title,
@@ -318,17 +329,17 @@ func (a *App) AuthRepliesQuery(userID int64, opinionID int64) ([]types.Opinion, 
 
 	rows, err := a.DB.Query(sqlQuery, userID, opinionID)
 	if err != nil {
+		log.Println(err)
 		if err == sql.ErrNoRows {
 			return os, nil
 		}
-		log.Println(err)
 		return os, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
 		o := types.Opinion{}
-		err := rows.Scan(&o.ID, &o.CreatedBy.Username, &o.CreatedBy.FullName, &o.CreatedBy.Picture, &o.CreatedBy.IsSelf, &o.Topic.ID, &o.Topic.Title, &o.Topic.Details, (*[]byte)(&o.Topic.Categories), &o.Topic.IsFollowing, &o.IsAnonymous, &o.IsFollowing, pq.Array(&o.Thumbnails), &o.Sources.Hls, &o.Sources.Dash, &o.Sources.Aac, &o.Vote, &o.Reaction, &o.CreatedOn, &o.Counts.Views, &o.Counts.Upvotes, &o.Counts.Downvotes, &o.Counts.Followers, &o.Counts.Replies)
+		err := rows.Scan(&o.ID, &o.CreatedBy.Username, &o.CreatedBy.FullName, &o.CreatedBy.Picture, &o.CreatedBy.IsFollowing, &o.CreatedBy.IsSelf, &o.Topic.ID, &o.Topic.Title, &o.Topic.Details, (*[]byte)(&o.Topic.Categories), &o.Topic.IsFollowing, &o.IsAnonymous, &o.IsFollowing, pq.Array(&o.Thumbnails), &o.Sources.Hls, &o.Sources.Dash, &o.Sources.Aac, &o.Vote, &o.Reaction, &o.CreatedOn, &o.Counts.Views, &o.Counts.Upvotes, &o.Counts.Downvotes, &o.Counts.Followers, &o.Counts.Replies)
 		if err != nil {
 			log.Println(err)
 			return os, err
@@ -354,6 +365,7 @@ func (a *App) RepliesQuery(opinionID int64) ([]types.Opinion, error) {
         u.username,
         u.full_name,
         u.picture,
+        0 as is_following_user,
         0 as is_self,
         t.topic_id,
         t.title,
@@ -386,6 +398,7 @@ func (a *App) RepliesQuery(opinionID int64) ([]types.Opinion, error) {
 
 	rows, err := a.DB.Query(sqlQuery, opinionID)
 	if err != nil {
+		log.Println(err)
 		if err == sql.ErrNoRows {
 			return os, nil
 		}
@@ -395,8 +408,9 @@ func (a *App) RepliesQuery(opinionID int64) ([]types.Opinion, error) {
 
 	for rows.Next() {
 		o := types.Opinion{}
-		err := rows.Scan(&o.ID, &o.CreatedBy.Username, &o.CreatedBy.FullName, &o.CreatedBy.Picture, &o.CreatedBy.IsSelf, &o.Topic.ID, &o.Topic.Title, &o.Topic.Details, (*[]byte)(&o.Topic.Categories), &o.Topic.IsFollowing, &o.IsAnonymous, &o.IsFollowing, pq.Array(&o.Thumbnails), &o.Sources.Hls, &o.Sources.Dash, &o.Sources.Aac, &o.Vote, &o.Reaction, &o.CreatedOn, &o.Counts.Views, &o.Counts.Upvotes, &o.Counts.Downvotes, &o.Counts.Followers, &o.Counts.Replies)
+		err := rows.Scan(&o.ID, &o.CreatedBy.Username, &o.CreatedBy.FullName, &o.CreatedBy.Picture, &o.CreatedBy.IsFollowing, &o.CreatedBy.IsSelf, &o.Topic.ID, &o.Topic.Title, &o.Topic.Details, (*[]byte)(&o.Topic.Categories), &o.Topic.IsFollowing, &o.IsAnonymous, &o.IsFollowing, pq.Array(&o.Thumbnails), &o.Sources.Hls, &o.Sources.Dash, &o.Sources.Aac, &o.Vote, &o.Reaction, &o.CreatedOn, &o.Counts.Views, &o.Counts.Upvotes, &o.Counts.Downvotes, &o.Counts.Followers, &o.Counts.Replies)
 		if err != nil {
+			log.Println(err)
 			return os, err
 		}
 		os = append(os, o)
@@ -404,6 +418,7 @@ func (a *App) RepliesQuery(opinionID int64) ([]types.Opinion, error) {
 
 	err = rows.Err()
 	if err != nil {
+		log.Println(err)
 		return os, err
 	}
 
@@ -430,12 +445,14 @@ func (a *App) AuthBreadcrumbsQuery(userID int64, opinionID int64) ([]types.Bread
         u.username,
         u.full_name,
         u.picture,
+        case when exists(select 1 from user_follower where user_id=u.user_id and follower_id=$1) then 1 else 0 as is_following_user,
         case when u.user_id = $1 then 1 else 0 end as is_self,
         (select count(*) from opinion where parent_id=a.opinion_id) as reply_count
     FROM ancestors a INNER JOIN Kuser u ON u.user_id = a.creator_id order by a.created_on asc;
     `
 	rows, err := a.DB.Query(sqlQuery, userID, opinionID)
 	if err != nil {
+		log.Println(err)
 		if err == sql.ErrNoRows {
 			return bs, nil
 		}
@@ -445,8 +462,9 @@ func (a *App) AuthBreadcrumbsQuery(userID int64, opinionID int64) ([]types.Bread
 
 	for rows.Next() {
 		b := types.Breadcrumb{}
-		err := rows.Scan(&b.OpinionID, &b.CreatedOn, &b.CreatedBy.Username, &b.CreatedBy.FullName, &b.CreatedBy.Picture, &b.CreatedBy.IsSelf, &b.Counts.Replies)
+		err := rows.Scan(&b.OpinionID, &b.CreatedOn, &b.CreatedBy.Username, &b.CreatedBy.FullName, &b.CreatedBy.Picture, &b.CreatedBy.IsFollowing, &b.CreatedBy.IsSelf, &b.Counts.Replies)
 		if err != nil {
+			log.Println(err)
 			return bs, err
 		}
 		bs = append(bs, b)
@@ -454,6 +472,7 @@ func (a *App) AuthBreadcrumbsQuery(userID int64, opinionID int64) ([]types.Bread
 
 	err = rows.Err()
 	if err != nil {
+		log.Println(err)
 		return bs, err
 	}
 
@@ -480,12 +499,14 @@ func (a *App) BreadcrumbsQuery(opinionID int64) ([]types.Breadcrumb, error) {
         u.username,
         u.full_name,
         u.picture,
+        0 as is_following_user,
         0 as is_self,
         (select count(*) from opinion where parent_id=a.opinion_id) as reply_count
     FROM ancestors a INNER JOIN Kuser u ON u.user_id = a.creator_id order by a.created_on asc;
     `
 	rows, err := a.DB.Query(sqlQuery, opinionID)
 	if err != nil {
+		log.Println(err)
 		if err == sql.ErrNoRows {
 			return bs, nil
 		}
@@ -495,8 +516,9 @@ func (a *App) BreadcrumbsQuery(opinionID int64) ([]types.Breadcrumb, error) {
 
 	for rows.Next() {
 		b := types.Breadcrumb{}
-		err := rows.Scan(&b.OpinionID, &b.CreatedOn, &b.CreatedBy.Username, &b.CreatedBy.FullName, &b.CreatedBy.Picture, &b.CreatedBy.IsSelf, &b.Counts.Replies)
+		err := rows.Scan(&b.OpinionID, &b.CreatedOn, &b.CreatedBy.Username, &b.CreatedBy.FullName, &b.CreatedBy.Picture, &b.CreatedBy.IsFollowing, &b.CreatedBy.IsSelf, &b.Counts.Replies)
 		if err != nil {
+			log.Println(err)
 			return bs, err
 		}
 		bs = append(bs, b)
@@ -504,6 +526,7 @@ func (a *App) BreadcrumbsQuery(opinionID int64) ([]types.Breadcrumb, error) {
 
 	err = rows.Err()
 	if err != nil {
+		log.Println(err)
 		return bs, err
 	}
 

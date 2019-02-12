@@ -23,7 +23,7 @@ func (m *Middleware) TopicID(next http.Handler) http.Handler {
 		topicIDString := chi.URLParam(r, "topic_id")
 		topicID, err := strconv.ParseInt(topicIDString, 10, 64)
 		if err != nil {
-			m.Log.Infoln(err)
+			log.Println(err)
 			utils.RespondWithError(w, http.StatusBadRequest, errs.BadRequest)
 			return
 		}
@@ -31,7 +31,7 @@ func (m *Middleware) TopicID(next http.Handler) http.Handler {
 		err = m.DB.QueryRow("select topic_id, title from topic where topic_id = $1", topicID).Scan(&ctxtopic.ID, &ctxtopic.Title)
 		if err != nil {
 			if err == sql.ErrNoRows {
-				m.Log.Infoln(err)
+				log.Println(err)
 				utils.RespondWithError(w, http.StatusNotFound, errs.TopicNotFound)
 				return
 			}

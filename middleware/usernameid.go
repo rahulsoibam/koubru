@@ -23,7 +23,7 @@ func (m *Middleware) UsernameID(next http.Handler) http.Handler {
 		err := m.DB.QueryRow("select user_id from kuser where username=$1", username).Scan(&usernameID)
 		if err != nil {
 			if err == sql.ErrNoRows {
-				m.Log.Infoln(err)
+				log.Println(err)
 				utils.RespondWithError(w, http.StatusNotFound, errs.UserNotFound)
 				return
 			}
