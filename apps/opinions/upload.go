@@ -60,7 +60,7 @@ func (a *App) PollSQSAndGetLinks(svc sqsiface.SQSAPI, bucket, filename, resultQu
 		resp, err := svc.ReceiveMessage(&sqs.ReceiveMessageInput{
 			QueueUrl:          aws.String(resultQueueURL),
 			VisibilityTimeout: aws.Int64(0),
-			WaitTimeSeconds:   aws.Int64(120),
+			WaitTimeSeconds:   aws.Int64(20),
 		})
 		if err != nil {
 			log.Println("Failed to receive message", err)
