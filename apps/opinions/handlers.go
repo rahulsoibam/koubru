@@ -314,10 +314,11 @@ func (a *App) Vote(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if err == sql.ErrNoRows {
 			safe = true
+		} else {
+			log.Println(err)
+			utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
+			return
 		}
-		log.Println(err)
-		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
-		return
 	}
 
 	if vote == "upvote" {
