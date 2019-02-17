@@ -162,7 +162,7 @@ func (a *App) Reply(w http.ResponseWriter, r *http.Request) {
 				log.Println(err)
 				utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 			}
-			filename := strconv.FormatUint(uuid, 10)
+			filename = strconv.FormatUint(uuid, 10)
 			err = a.S3UploadOpinion(part, filename)
 			if err != nil {
 				log.Println(err)
@@ -175,6 +175,7 @@ func (a *App) Reply(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println(err)
 		utils.RespondWithError(w, http.StatusBadRequest, err)
+		return
 	}
 
 	nr.Source = links.Source
