@@ -24,4 +24,5 @@ var (
 	UserFollowAlreadyFollowing     = errors.New("You are already following this user.")
 	UserUnfollowNotFollowing       = errors.New("You do not follow this user.")
 	OpinionNotFound                = errors.New("Opinion not found.")
+	OpinionBadPayload              = errors.New("Something wrong with the uploaded file. Please change the file and try again.")
 )

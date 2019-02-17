@@ -23,7 +23,8 @@ export CACHE_REDIS_ADDRESS='koubruauthredis-0001-002.qwpnzg.0001.aps1.cache.amaz
 export CACHE_REDIS_PASSWORD=''
 # AWS related env variables
 export AWS_REGION='ap-south-1'
-export S3_BUCKET='media.rahulsoibam.me'
+export S3_BUCKET='ingest.koubru.app'
+export QUEUE_URL='https://sqs.ap-south-1.amazonaws.com/061205209873/koubru_video_transcode_output'
 
 # SendGrid Key
 export SENDGRID_API_KEY='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'

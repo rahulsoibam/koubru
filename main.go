@@ -44,12 +44,13 @@ var (
 	authCache        *redis.Client
 	cache            *redis.Client
 	authDB           *sql.DB
-	uploader         *s3manager.Uploader
 	flake            *sonyflake.Sonyflake
 	setupOnce        sync.Once
 	sendgridClient   *sendgrid.Client
 	argon2Params     *authutils.Params
 	koubruMiddleware *koubrumiddleware.Middleware
+	uploader         *s3manager.Uploader
+	sess             *session.Session
 )
 
 // MaxUploadSize is the max upload size of videos (including accompanying form data) in bytes
@@ -60,7 +61,7 @@ func main() {
 	initializeDB()
 	initializeAuthDB()
 	initializeAuthCache()
-	initializeS3Uploader()
+	initializeAWSSession()
 	initializeSonyflake()
 	initializeArgon2Params()
 	initializeSendgridClient()
@@ -80,6 +81,7 @@ func main() {
 		Middleware: koubruMiddleware,
 		Flake:      flake,
 		Uploader:   uploader,
+		Sess:       sess,
 	}
 	r.Mount("/opinions", oa.Routes())
 	aa := auth.App{
@@ -194,16 +196,18 @@ func initializeDB() {
 	}
 }
 
+func initializeAWSSession() {
+	var err error
+	// Global variables
+	sess, err = session.NewSession(&aws.Config{Region: aws.String(os.Getenv("AWS_REGION"))})
+	if err != nil {
+		log.Fatal("AWSSession: ", err)
+	}
+}
+
 func initializeS3Uploader() {
-	sess, err := session.NewSession(&aws.Config{Region: aws.String(os.Getenv("AWS_REGION"))})
-	if err != nil {
-		log.SetOutput(os.Stdout)
-		log.Fatal("s3Uploader: ", err)
-	}
+	// uploader is a global variable
 	uploader = s3manager.NewUploader(sess)
-	if err != nil {
-		log.Fatal("s3Uploader: ", err)
-	}
 }
 
 func initializeSonyflake() {

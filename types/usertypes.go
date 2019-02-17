@@ -36,10 +36,11 @@ func (c *NewCategory) Validate() error {
 }
 
 type NewOpinion struct {
-	TopicID     int64  `json:"topic_id"`
-	Reaction    string `json:"reaction"`
-	IsAnonymous bool   `json:"is_anonymous"`
-	Mp4         string `json:"mp4"`
+	TopicID   int64  `json:"topic_id"`
+	Reaction  string `json:"reaction"`
+	Source    string `json:"source"`
+	Hls       string `json:"hls"`
+	Thumbnail string `json:"thumbnail"`
 }
 
 func (no *NewOpinion) Validate() error {
@@ -49,18 +50,16 @@ func (no *NewOpinion) Validate() error {
 	if !utils.IsValidOpinion(no.Reaction) {
 		return errors.New("Not a valid reaction.")
 	}
-	if no.Mp4 == "" {
-		return errors.New("Problem with upload.")
-	}
 	return nil
 }
 
 type NewReply struct {
-	TopicID     int64
-	Reaction    string
-	IsAnonymous bool
-	Mp4         string
-	ParentID    int64
+	ParentID  int64
+	TopicID   int64
+	Reaction  string
+	Source    string
+	Hls       string
+	Thumbnail string
 }
 
 func (nr *NewReply) Validate() error {
@@ -69,9 +68,6 @@ func (nr *NewReply) Validate() error {
 	}
 	if !utils.IsValidOpinion(nr.Reaction) {
 		return errors.New("Not a valid opinion")
-	}
-	if nr.Mp4 == "" {
-		return errors.New("Problem with upload.")
 	}
 	return nil
 }

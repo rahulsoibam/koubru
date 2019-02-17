@@ -2,10 +2,15 @@ package opinions
 
 import (
 	"bytes"
+	"database/sql"
+	"errors"
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
+
+	"github.com/aws/aws-sdk-go/service/sqs"
 
 	"github.com/rahulsoibam/koubru/errs"
 	"github.com/rahulsoibam/koubru/utils"
@@ -54,6 +59,7 @@ func (a *App) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	nr := types.NewReply{}
+	var filename string
 	for {
 		part, err := reader.NextPart()
 		if err == io.EOF {
@@ -71,18 +77,14 @@ func (a *App) Create(w http.ResponseWriter, r *http.Request) {
 			buf := new(bytes.Buffer)
 			buf.ReadFrom(part)
 			nr.Reaction = buf.String()
-		} else if part.FormName() == "is_anonymous" {
-			buf := new(bytes.Buffer)
-			buf.ReadFrom(part)
-			nr.IsAnonymous, err = strconv.ParseBool(buf.String())
 		} else if part.FormName() == "file" {
 			uuid, err := a.Flake.NextID()
 			if err != nil {
 				log.Println(err)
 				utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 			}
-			filename := strconv.FormatUint(uuid, 10) + ".mp4"
-			nr.Mp4, err = a.S3UploadOpinion(part, filename)
+			filename = strconv.FormatUint(uuid, 10)
+			err = a.S3UploadOpinion(part, filename)
 			if err != nil {
 				log.Println(err)
 				utils.RespondWithError(w, http.StatusBadRequest, errs.BadRequest)
@@ -90,6 +92,17 @@ func (a *App) Create(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+
+	links, err := a.PollSQSAndGetLinks(sqs.New(a.Sess), os.Getenv("S3_BUCKET"), filename, os.Getenv("QUEUE_URL"))
+	if err != nil {
+		log.Println(err)
+		utils.RespondWithError(w, http.StatusBadRequest, errs.OpinionBadPayload)
+		return
+	}
+	nr.Source = links.Source
+	nr.Hls = links.Hls
+	nr.Thumbnail = links.Thumbnail
+
 	// Validate
 	if err := nr.Validate(); err != nil {
 		log.Println(nr, err)
@@ -129,6 +142,7 @@ func (a *App) Reply(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var filename string
 	nr := types.NewReply{}
 	nr.ParentID = ctxOpinon.ID
 	nr.TopicID = ctxOpinon.TopicID
@@ -140,18 +154,14 @@ func (a *App) Reply(w http.ResponseWriter, r *http.Request) {
 			buf := new(bytes.Buffer)
 			buf.ReadFrom(part)
 			nr.Reaction = buf.String()
-		} else if part.FormName() == "is_anonymous" {
-			buf := new(bytes.Buffer)
-			buf.ReadFrom(part)
-			nr.IsAnonymous, err = strconv.ParseBool(buf.String())
 		} else if part.FormName() == "file" {
 			uuid, err := a.Flake.NextID()
 			if err != nil {
 				log.Println(err)
 				utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 			}
-			filename := strconv.FormatUint(uuid, 10) + ".mp4"
-			nr.Mp4, err = a.S3UploadOpinion(part, filename)
+			filename := strconv.FormatUint(uuid, 10)
+			err = a.S3UploadOpinion(part, filename)
 			if err != nil {
 				log.Println(err)
 				utils.RespondWithError(w, http.StatusBadRequest, errs.BadRequest)
@@ -159,6 +169,15 @@ func (a *App) Reply(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+	links, err := a.PollSQSAndGetLinks(sqs.New(a.Sess), os.Getenv("S3_BUCKET"), filename, os.Getenv("QUEUE_URL"))
+	if err != nil {
+		log.Println(err)
+		utils.RespondWithError(w, http.StatusBadRequest, err)
+	}
+
+	nr.Source = links.Source
+	nr.Hls = links.Hls
+	nr.Thumbnail = links.Thumbnail
 
 	// Validate
 	if err := nr.Validate(); err != nil {
@@ -236,12 +255,12 @@ func (a *App) Followers(w http.ResponseWriter, r *http.Request) {
 
 // Follow to follow an opinion
 func (a *App) Follow(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Follow opinion"))
+	w.Write([]byte("Follow opinion is not supported yet"))
 }
 
 // Unfollow to unfollow an opinion
 func (a *App) Unfollow(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Unfollow opinion"))
+	w.Write([]byte("Unfollow opinion is not supported by the platform yet"))
 }
 
 // Replies to reply to an opinion
@@ -273,5 +292,87 @@ func (a *App) Report(w http.ResponseWriter, r *http.Request) {
 
 // Vote to vote on an opinion
 func (a *App) Vote(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Vote on an opinion"))
+	ctx := r.Context()
+	userID, auth := ctx.Value(middleware.AuthKeys("user_id")).(int64)
+	opinionID := ctx.Value(middleware.OpinionKeys("opinion_id")).(int64)
+
+	if !auth {
+		log.Println(ctx, errs.UnintendedExecution)
+		utils.RespondWithError(w, http.StatusUnauthorized, errs.Unauthorized)
+		return
+	}
+
+	vote := r.FormValue("vote")
+	var voteBool bool
+	var safe bool
+
+	err := a.DB.QueryRow("SELECT vote FROM Opinion_Vote WHERE voter_id=$1 AND opinion_id=$2", userID, opinionID).Scan(&voteBool)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			safe = true
+		}
+		log.Println(err)
+		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
+		return
+	}
+
+	if vote == "upvote" {
+		if safe {
+			log.Println("Upvoting when user has not voted yet")
+			_, err := a.DB.Exec("INSERT INTO Opinion_Vote (voter_id, opinion_id, vote) VALUES ($1, $2, $3)", userID, opinionID, true)
+			if err != nil {
+				log.Println(err)
+				utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
+				return
+			}
+		} else if !voteBool {
+			log.Println("Upvoting when user was downvoting")
+			_, err := a.DB.Exec("UPDATE Opinion_Vote SET vote=$1 WHERE voter_id=$2 AND opinion_id=$3", true, userID, opinionID)
+			if err != nil {
+				log.Println(err)
+				utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
+				return
+			}
+		} else if voteBool {
+			log.Println("Upvoting when user has already upvoted on the post")
+			_, err := a.DB.Exec("DELETE FROM Opinion_Vote WHERE voter_id=$1 AND opinion_id=$2", userID, opinionID)
+			if err != nil {
+				log.Println(err)
+				utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
+				return
+			}
+		}
+	} else if vote == "downvote" {
+		if safe {
+			log.Println("Downvoting when user has not voted yet")
+			_, err := a.DB.Exec("INSERT INTO Opinion_Vote (voter_id, opinion_id, vote) VALUES ($1, $2, $3)", userID, opinionID, false)
+			if err != nil {
+				log.Println(err)
+				utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
+				return
+			}
+		} else if voteBool {
+			log.Println("Downvoting when user was upvoting")
+			_, err := a.DB.Exec("UPDATE Opinion_Vote SET vote=$1 WHERE voter_id=$2 AND opinion_id=$3", false, userID, opinionID)
+			if err != nil {
+				log.Println(err)
+				utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
+				return
+			}
+		} else if !voteBool {
+			log.Println("Downvoting when user has already downvoted on the post")
+			_, err := a.DB.Exec("DELETE FROM Opinion_Vote WHERE voter_id=$1 AND opinion_id=$2", userID, opinionID)
+			if err != nil {
+				log.Println(err)
+				utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
+				return
+			}
+		}
+	} else {
+		log.Println("Invalid vote", vote)
+		utils.RespondWithError(w, http.StatusBadRequest, errors.New(vote+" is not a valid vote type"))
+		return
+	}
+
+	utils.RespondWithMessage(w, http.StatusOK, "Action successful")
 }

@@ -3,6 +3,8 @@ package opinions
 import (
 	"database/sql"
 
+	"github.com/aws/aws-sdk-go/aws/session"
+
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 
 	"github.com/sony/sonyflake"
@@ -19,4 +21,5 @@ type App struct {
 	Middleware *middleware.Middleware
 	Flake      *sonyflake.Sonyflake
 	Uploader   *s3manager.Uploader
+	Sess       *session.Session
 }
