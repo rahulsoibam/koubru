@@ -86,6 +86,7 @@ func (a *App) PollSQSAndGetLinks(svc sqsiface.SQSAPI, bucket, filename, resultQu
 					QueueUrl:      aws.String(resultQueueURL),
 					ReceiptHandle: msg.ReceiptHandle,
 				})
+				log.Println("Message deleted")
 				return result.Output, nil
 			}
 		}
