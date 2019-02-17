@@ -318,7 +318,7 @@ func (a *App) AuthTopicsQuery(userID int64, categoryID int64) ([]types.TopicForL
 		u.full_name,
 		u.picture,
 		CASE WHEN EXISTS (SELECT 1 FROM user_follower WHERE user_id=u.user_id AND follower_id=$1) THEN 1 ELSE 0 END AS is_following_user,
-		CASE WHEN u.user_id = $1 as is_self
+		CASE WHEN u.user_id = $1 THEN 1 ELSE 0 as is_self
 	FROM topic t inner join kuser u on t.creator_id=u.user_id inner join topic_category tc on t.topic_id = tc.topic_id and tc.category_id = $2
 	inner join topic_category tc2 on tc2.topic_id=t.topic_id
 	inner join category c on c.category_id=tc2.category_id
