@@ -52,6 +52,10 @@ func (a *App) S3UploadOpinion(file io.Reader, filename string) error {
 }
 
 func (a *App) PollSQSAndGetLinks(svc sqsiface.SQSAPI, bucket, filename, resultQueueURL string) (*SQSOutput, error) {
+	log.Println("Client: ", svc)
+	log.Println("Bucket: ", bucket)
+	log.Println("Result Queue URL: ", resultQueueURL)
+
 	for {
 		resp, err := svc.ReceiveMessage(&sqs.ReceiveMessageInput{
 			QueueUrl:          aws.String(resultQueueURL),
@@ -59,7 +63,7 @@ func (a *App) PollSQSAndGetLinks(svc sqsiface.SQSAPI, bucket, filename, resultQu
 			WaitTimeSeconds:   aws.Int64(120),
 		})
 		if err != nil {
-			log.Println("Failed to receive message")
+			log.Println("Failed to receive message", err)
 			time.Sleep(5 * time.Second)
 			continue
 		}
