@@ -54,12 +54,12 @@ func (no *NewOpinion) Validate() error {
 }
 
 type NewReply struct {
-	ParentID  int64
-	TopicID   int64
-	Reaction  string
-	Source    string
-	Hls       string
-	Thumbnail string
+	ParentID   int64
+	TopicID    int64
+	Reaction   string
+	Source     string
+	Hls        string
+	Thumbnails []string
 }
 
 func (nr *NewReply) Validate() error {

@@ -101,7 +101,7 @@ func (a *App) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	nr.Source = links.Source
 	nr.Hls = links.Hls
-	nr.Thumbnail = links.Thumbnail
+	nr.Thumbnails = append(nr.Thumbnails, links.Thumbnail)
 
 	// Validate
 	if err := nr.Validate(); err != nil {
@@ -177,7 +177,7 @@ func (a *App) Reply(w http.ResponseWriter, r *http.Request) {
 
 	nr.Source = links.Source
 	nr.Hls = links.Hls
-	nr.Thumbnail = links.Thumbnail
+	nr.Thumbnails = append(nr.Thumbnails, links.Thumbnail)
 
 	// Validate
 	if err := nr.Validate(); err != nil {
