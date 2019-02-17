@@ -445,7 +445,7 @@ func (a *App) AuthBreadcrumbsQuery(userID int64, opinionID int64) ([]types.Bread
         u.username,
         u.full_name,
         u.picture,
-        case when exists(select 1 from user_follower where user_id=u.user_id and follower_id=$1) then 1 else 0 as is_following_user,
+        case when exists(select 1 from user_follower where user_id=u.user_id and follower_id=$1) then 1 else 0 end as is_following_user,
         case when u.user_id = $1 then 1 else 0 end as is_self,
         (select count(*) from opinion where parent_id=a.opinion_id) as reply_count
     FROM ancestors a INNER JOIN Kuser u ON u.user_id = a.creator_id order by a.created_on asc;
