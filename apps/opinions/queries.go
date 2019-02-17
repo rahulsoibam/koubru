@@ -161,7 +161,7 @@ func (a *App) AuthGetQuery(userID int64, opinionID int64) (types.Opinion, error)
         u.username,
         u.full_name,
         u.picture,
-        case when exists(select 1 from user_follower where user_id=u.user_id and follower_id=$1) as is_following_user,
+        case when exists(select 1 from user_follower where user_id=u.user_id and follower_id=$1) then 1 else 0 end as is_following_user,
         case when o.creator_id=$1 then 1 else 0 end as is_self,
         t.topic_id,
         t.title,
