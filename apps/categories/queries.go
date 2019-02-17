@@ -338,7 +338,7 @@ func (a *App) AuthTopicsQuery(userID int64, categoryID int64) ([]types.TopicForL
 	for rows.Next() {
 		t := types.TopicForList{}
 		// IsFollowing will default to false
-		err := rows.Scan(&t.ID, &t.Title, &t.Details, &t.CreatedOn, &t.IsFollowing, (*[]byte)(&t.Categories), &t.CreatedBy.Username, &t.CreatedBy.FullName, &t.CreatedBy.Picture, &t.CreatedBy.IsFollowing, &t.CreatedBy.IsSelf)
+		err := rows.Scan(&t.ID, &t.Title, &t.Details, &t.CreatedOn, (*[]byte)(&t.Categories), &t.IsFollowing, &t.CreatedBy.Username, &t.CreatedBy.FullName, &t.CreatedBy.Picture, &t.CreatedBy.IsFollowing, &t.CreatedBy.IsSelf)
 		if err != nil {
 			log.Println(err)
 			return ts, err
