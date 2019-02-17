@@ -110,6 +110,8 @@ func (a *App) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Println("New Reply Object: ", nr)
+
 	opinion := types.Opinion{}
 	opinion, err = a.AuthCreateReplyQuery(userID, nr)
 
@@ -185,6 +187,7 @@ func (a *App) Reply(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithError(w, http.StatusBadRequest, err)
 		return
 	}
+	log.Println("New Reply Object: ", nr)
 
 	opinion := types.Opinion{}
 	opinion, err = a.AuthCreateReplyQuery(userID, nr)
