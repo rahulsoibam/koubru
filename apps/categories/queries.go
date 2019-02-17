@@ -364,7 +364,7 @@ func (a *App) TopicsQuery(categoryID int64) ([]types.TopicForList, error) {
 		t.title,
 		t.details,
 		t.created_on,
-		coalesce(json_agg(json_build_object('id',c.category_id,'name',c.name)) FILTER (WHERE c.category_id IS NOT NULL OR c.name IS NOT NULL), '[]'::json)
+		coalesce(json_agg(json_build_object('id',c.category_id,'name',c.name)) FILTER (WHERE c.category_id IS NOT NULL OR c.name IS NOT NULL), '[]'::json),
 		0 as is_following,
 		u.username,
 		u.full_name,
