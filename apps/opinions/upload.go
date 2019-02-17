@@ -75,6 +75,7 @@ func (a *App) PollSQSAndGetLinks(svc sqsiface.SQSAPI, bucket, filename, resultQu
 				continue
 			}
 			if result.Event.SourceBucket == bucket && result.Event.Key == filename {
+				log.Println(result)
 				if result.Error != nil {
 					log.Println(result.Error)
 					return nil, errs.OpinionBadPayload
