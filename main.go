@@ -62,6 +62,7 @@ func main() {
 	initializeAuthDB()
 	initializeAuthCache()
 	initializeAWSSession()
+	initializeS3Uploader()
 	initializeSonyflake()
 	initializeArgon2Params()
 	initializeSendgridClient()
