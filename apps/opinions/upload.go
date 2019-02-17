@@ -54,6 +54,7 @@ func (a *App) S3UploadOpinion(file io.Reader, filename string) error {
 func (a *App) PollSQSAndGetLinks(svc sqsiface.SQSAPI, bucket, filename, resultQueueURL string) (*SQSOutput, error) {
 	log.Println("Client: ", svc)
 	log.Println("Bucket: ", bucket)
+	log.Println("Filename: ", filename)
 	log.Println("Result Queue URL: ", resultQueueURL)
 
 	for {
@@ -67,8 +68,10 @@ func (a *App) PollSQSAndGetLinks(svc sqsiface.SQSAPI, bucket, filename, resultQu
 			time.Sleep(5 * time.Second)
 			continue
 		}
+		log.Println("Response: ", resp)
 
 		for _, msg := range resp.Messages {
+			log.Println("Message: ", msg)
 			result := &SQSResponse{}
 			if err := json.Unmarshal([]byte(aws.StringValue(msg.Body)), result); err != nil {
 				log.Println("Failed to unmarshal message", err)
