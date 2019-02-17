@@ -240,7 +240,7 @@ func (a *App) AuthFollowersQuery(userID int64, categoryID int64) ([]types.UserFo
 	defer rows.Close()
 	for rows.Next() {
 		f := types.UserForFollowList{}
-		err := rows.Scan(&f.Username, &f.FullName, &f.Picture, &f.IsFollowing, &f.IsSelf)
+		err := rows.Scan(&f.Username, &f.FullName, &f.Picture, &f.FollowedOn, &f.IsFollowing, &f.IsSelf)
 		if err != nil {
 			log.Println(err)
 			return fs, err
