@@ -68,17 +68,15 @@ func (a *App) PollSQSAndGetLinks(svc sqsiface.SQSAPI, bucket, filename, resultQu
 			time.Sleep(5 * time.Second)
 			continue
 		}
-		log.Println("Response: ", resp)
 
 		for _, msg := range resp.Messages {
-			log.Println("Message: ", msg)
 			result := &SQSResponse{}
 			if err := json.Unmarshal([]byte(aws.StringValue(msg.Body)), result); err != nil {
 				log.Println("Failed to unmarshal message", err)
 				continue
 			}
 			if result.Event.SourceBucket == bucket && result.Event.Key == filename {
-				log.Println(result)
+				log.Println(msg)
 				if result.Error != nil {
 					log.Println(result.Error)
 					return nil, errs.OpinionBadPayload
