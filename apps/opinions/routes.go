@@ -31,7 +31,7 @@ func (a App) Routes() chi.Router {
 			r.Put("/follow", a.Follow)
 			r.Delete("/follow", a.Unfollow)
 			r.Post("/report", a.Report)
-			r.Post("/vote", a.Vote)
+			r.Put("/vote", a.Vote)
 		})
 	})
 	return r
