@@ -360,7 +360,7 @@ func (a *App) Vote(w http.ResponseWriter, r *http.Request) {
 			}
 			utils.RespondWithMessage(w, http.StatusOK, "Downvoted")
 			return
-		} else if !voteBool {
+		} else if voteBool {
 			_, err := a.DB.Exec("UPDATE Opinion_Vote SET vote=$1 WHERE voter_id=$2 AND opinion_id=$3", false, userID, opinionID)
 			if err != nil {
 				log.Println(err)
@@ -369,7 +369,7 @@ func (a *App) Vote(w http.ResponseWriter, r *http.Request) {
 			}
 			utils.RespondWithMessage(w, http.StatusOK, "Downvoted (and deleted upvote)")
 			return
-		} else if voteBool {
+		} else if !voteBool {
 			_, err := a.DB.Exec("DELETE FROM Opinion_Vote WHERE voter_id=$1 AND opinion_id=$2", userID, opinionID)
 			if err != nil {
 				log.Println(err)
