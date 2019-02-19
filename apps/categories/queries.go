@@ -212,8 +212,11 @@ func (a *App) GetQuery(categoryID int64) (types.Category, error) {
 }
 
 // TODO ADD PAGINATION
-func (a *App) AuthFollowersQuery(userID int64, categoryID int64) ([]types.UserForFollowList, error) {
+func (a *App) AuthFollowersQuery(ctx context.Context, userID int64, categoryID int64) ([]types.UserForFollowList, error) {
 	fs := []types.UserForFollowList{}
+	limit := ctx.Value(middleware.PaginationKeys("per_page")).(int)
+	offset := ctx.Value(middleware.PaginationKeys("db_offset")).(int)
+
 	sqlQuery := `
 	SELECT
         u.username,
@@ -225,10 +228,11 @@ func (a *App) AuthFollowersQuery(userID int64, categoryID int64) ([]types.UserFo
     FROM
         KUser u INNER JOIN Category_Follower cf ON u.user_id = cf.follower_id
     WHERE cf.category_id=$2
-    ORDER BY is_self desc, is_following desc
+	ORDER BY is_self desc, is_following desc
+	limit $3 offset $4
 	`
 
-	rows, err := a.DB.Query(sqlQuery, userID, categoryID)
+	rows, err := a.DB.Query(sqlQuery, userID, categoryID, limit, offset)
 	if err != nil {
 		log.Println(err)
 		if err == sql.ErrNoRows {
@@ -257,8 +261,10 @@ func (a *App) AuthFollowersQuery(userID int64, categoryID int64) ([]types.UserFo
 }
 
 // TODO ADD PAGINATION
-func (a *App) FollowersQuery(categoryID int64) ([]types.UserForFollowList, error) {
+func (a *App) FollowersQuery(ctx context.Context, categoryID int64) ([]types.UserForFollowList, error) {
 	fs := []types.UserForFollowList{}
+	limit := ctx.Value(middleware.PaginationKeys("per_page")).(int)
+	offset := ctx.Value(middleware.PaginationKeys("db_offset")).(int)
 	// List followers of a category ordered by their ids
 	sqlQuery := `
 	SELECT
@@ -272,10 +278,11 @@ func (a *App) FollowersQuery(categoryID int64) ([]types.UserForFollowList, error
         KUser u INNER JOIN Category_Follower cf on u.user_id = cf.follower_id left join user_follower uf on u.user_id=uf.user_id
     WHERE cf.category_id=$1
     GROUP BY u.user_id, cf.followed_on
-    ORDER BY (SELECT count(uf.follower_id)) DESC
+	ORDER BY (SELECT count(uf.follower_id)) DESC
+	LIMIT $2 OFFSET $3
 	`
 
-	rows, err := a.DB.Query(sqlQuery, categoryID)
+	rows, err := a.DB.Query(sqlQuery, categoryID, limit, offset)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return fs, nil
@@ -303,8 +310,10 @@ func (a *App) FollowersQuery(categoryID int64) ([]types.UserForFollowList, error
 }
 
 // TODO ADD PAGINATION
-func (a *App) AuthTopicsQuery(userID int64, categoryID int64) ([]types.TopicForList, error) {
+func (a *App) AuthTopicsQuery(ctx context.Context, userID int64, categoryID int64) ([]types.TopicForList, error) {
 	ts := []types.TopicForList{}
+	limit := ctx.Value(middleware.PaginationKeys("per_page")).(int)
+	offset := ctx.Value(middleware.PaginationKeys("db_offset")).(int)
 	// List all topics of a category sorted by follower count then in chronologial order
 	sqlQuery := `
 	SELECT
@@ -324,8 +333,9 @@ func (a *App) AuthTopicsQuery(userID int64, categoryID int64) ([]types.TopicForL
 	inner join category c on c.category_id=tc2.category_id
 	group by t.topic_id, u.user_id
 	ORDER BY (SELECT COUNT(tf.follower_id) FROM topic_follower tf WHERE tf.topic_id=t.topic_id GROUP BY tf.topic_id) DESC, t.created_on DESC
+	LIMIT $3 OFFSET $4
 	`
-	rows, err := a.DB.Query(sqlQuery, userID, categoryID)
+	rows, err := a.DB.Query(sqlQuery, userID, categoryID, limit, offset)
 	if err != nil {
 		log.Println(err)
 		if err == sql.ErrNoRows {
@@ -355,8 +365,10 @@ func (a *App) AuthTopicsQuery(userID int64, categoryID int64) ([]types.TopicForL
 }
 
 // TODO ADD PAGINATION
-func (a *App) TopicsQuery(categoryID int64) ([]types.TopicForList, error) {
+func (a *App) TopicsQuery(ctx context.Context, categoryID int64) ([]types.TopicForList, error) {
 	ts := []types.TopicForList{}
+	limit := ctx.Value(middleware.PaginationKeys("per_page")).(int)
+	offset := ctx.Value(middleware.PaginationKeys("db_offset")).(int)
 	// List all topics of a category sorted by follower count then in chronologial order
 	sqlQuery := `
 	SELECT
@@ -376,8 +388,9 @@ func (a *App) TopicsQuery(categoryID int64) ([]types.TopicForList, error) {
 	inner join category c on c.category_id=tc2.category_id
 	group by t.topic_id, u.user_id
 	ORDER BY (SELECT COUNT(tf.follower_id) FROM topic_follower tf WHERE tf.topic_id=t.topic_id GROUP BY tf.topic_id) DESC, t.created_on DESC
+	LIMIT $2 OFFSET $3
 	`
-	rows, err := a.DB.Query(sqlQuery, categoryID)
+	rows, err := a.DB.Query(sqlQuery, categoryID, limit, offset)
 	if err != nil {
 		log.Println(err)
 		if err == sql.ErrNoRows {
