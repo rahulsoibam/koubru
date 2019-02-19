@@ -276,9 +276,9 @@ func (a *App) Replies(w http.ResponseWriter, r *http.Request) {
 	replies := []types.Opinion{}
 	var err error
 	if auth {
-		replies, err = a.AuthRepliesQuery(userID, opinionID)
+		replies, err = a.AuthRepliesQuery(ctx, userID, opinionID)
 	} else {
-		replies, err = a.RepliesQuery(opinionID)
+		replies, err = a.RepliesQuery(ctx, opinionID)
 	}
 	if err != nil {
 		log.Println(err)

@@ -7,6 +7,7 @@ import (
 
 type Opinion struct {
 	ID        int64            `json:"id"`
+	ParentID  int64            `json:"parent_id"`
 	CreatedBy UserForCreatedBy `json:"created_by"`
 	Topic     struct {
 		ID          int64           `json:"id"`
