@@ -177,8 +177,10 @@ func (a *App) GetQuery(topicID int64) (types.Topic, error) {
 	return t, nil
 }
 
-func (a *App) AuthFollowersQuery(userID int64, topicID int64) ([]types.UserForFollowList, error) {
+func (a *App) AuthFollowersQuery(ctx context.Context, userID int64, topicID int64) ([]types.UserForFollowList, error) {
 	fs := []types.UserForFollowList{}
+	limit := ctx.Value(middleware.PaginationKeys("per_page")).(int)
+	offset := ctx.Value(middleware.PaginationKeys("db_offset")).(int)
 
 	sqlQuery := `
 	SELECT
@@ -190,10 +192,11 @@ func (a *App) AuthFollowersQuery(userID int64, topicID int64) ([]types.UserForFo
     FROM
         KUser u INNER JOIN Topic_Follower tf ON u.user_id=tf.follower_id
     WHERE tf.topic_id=$2
-    ORDER BY is_self desc, is_following desc
+	ORDER BY is_self desc, is_following desc
+	limit $3 offset $4
 	`
 
-	rows, err := a.DB.Query(sqlQuery, userID, topicID)
+	rows, err := a.DB.Query(sqlQuery, userID, topicID, limit, offset)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return fs, nil
@@ -221,8 +224,10 @@ func (a *App) AuthFollowersQuery(userID int64, topicID int64) ([]types.UserForFo
 	return fs, nil
 }
 
-func (a *App) FollowersQuery(topicID int64) ([]types.UserForFollowList, error) {
+func (a *App) FollowersQuery(ctx context.Context, topicID int64) ([]types.UserForFollowList, error) {
 	fs := []types.UserForFollowList{}
+	limit := ctx.Value(middleware.PaginationKeys("per_page")).(int)
+	offset := ctx.Value(middleware.PaginationKeys("db_offset")).(int)
 
 	sqlQuery := `
 	SELECT
@@ -234,10 +239,11 @@ func (a *App) FollowersQuery(topicID int64) ([]types.UserForFollowList, error) {
     FROM
         KUser u INNER JOIN Topic_Follower tf ON u.user_id=tf.follower_id
     WHERE tf.topic_id=$1
-    ORDER BY is_self desc, is_following desc
+	ORDER BY is_self desc, is_following desc
+	LIMIT $2 OFFSET $3
 	`
 
-	rows, err := a.DB.Query(sqlQuery, topicID)
+	rows, err := a.DB.Query(sqlQuery, topicID, limit, offset)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return fs, nil
@@ -265,12 +271,15 @@ func (a *App) FollowersQuery(topicID int64) ([]types.UserForFollowList, error) {
 	return fs, nil
 }
 
-func (a *App) AuthOpinionsQuery(userID int64, topicID int64) ([]types.Opinion, error) {
+func (a *App) AuthOpinionsQuery(ctx context.Context, userID int64, topicID int64) ([]types.Opinion, error) {
 	os := []types.Opinion{}
+	limit := ctx.Value(middleware.PaginationKeys("per_page")).(int)
+	offset := ctx.Value(middleware.PaginationKeys("db_offset")).(int)
 
 	sqlQuery := `
 	SELECT
-        o.opinion_id,
+		o.opinion_id,
+		coalesce(o.parent_id, 0) as parent_id,
         u.username,
         u.full_name,
 		u.picture,
@@ -302,10 +311,11 @@ func (a *App) AuthOpinionsQuery(userID int64, topicID int64) ([]types.Opinion, e
         LEFT JOIN Topic_Category tc on tc.topic_id = t.topic_id
         LEFT JOIN Category c on c.category_id=tc.category_id
     WHERE o.topic_id=$2
-    GROUP BY o.opinion_id, u.user_id, t.topic_id, views, ov.vote
+	GROUP BY o.opinion_id, u.user_id, t.topic_id, views, ov.vote
+	LIMIT $3 OFFSET $4
 	`
 
-	rows, err := a.DB.Query(sqlQuery, userID, topicID)
+	rows, err := a.DB.Query(sqlQuery, userID, topicID, limit, offset)
 	if err != nil {
 		log.Println(err)
 		if err != sql.ErrNoRows {
@@ -317,7 +327,7 @@ func (a *App) AuthOpinionsQuery(userID int64, topicID int64) ([]types.Opinion, e
 	defer rows.Close()
 	for rows.Next() {
 		o := types.Opinion{}
-		err := rows.Scan(&o.ID, &o.CreatedBy.Username, &o.CreatedBy.FullName, &o.CreatedBy.Picture, &o.CreatedBy.IsFollowing, &o.CreatedBy.IsSelf, &o.Topic.ID, &o.Topic.Title, &o.Topic.Details, (*[]byte)(&o.Topic.Categories), &o.Topic.IsFollowing, &o.IsAnonymous, &o.IsFollowing, pq.Array(&o.Thumbnails), &o.Sources.Hls, &o.Sources.Dash, &o.Sources.Aac, &o.Vote, &o.Reaction, &o.CreatedOn, &o.Counts.Views, &o.Counts.Upvotes, &o.Counts.Downvotes, &o.Counts.Followers, &o.Counts.Replies)
+		err := rows.Scan(&o.ID, &o.ParentID, &o.CreatedBy.Username, &o.CreatedBy.FullName, &o.CreatedBy.Picture, &o.CreatedBy.IsFollowing, &o.CreatedBy.IsSelf, &o.Topic.ID, &o.Topic.Title, &o.Topic.Details, (*[]byte)(&o.Topic.Categories), &o.Topic.IsFollowing, &o.IsAnonymous, &o.IsFollowing, pq.Array(&o.Thumbnails), &o.Sources.Hls, &o.Sources.Dash, &o.Sources.Aac, &o.Vote, &o.Reaction, &o.CreatedOn, &o.Counts.Views, &o.Counts.Upvotes, &o.Counts.Downvotes, &o.Counts.Followers, &o.Counts.Replies)
 		if err != nil {
 			log.Println(err)
 			return os, err
@@ -334,12 +344,15 @@ func (a *App) AuthOpinionsQuery(userID int64, topicID int64) ([]types.Opinion, e
 	return os, nil
 }
 
-func (a *App) OpinionsQuery(topicID int64) ([]types.Opinion, error) {
+func (a *App) OpinionsQuery(ctx context.Context, topicID int64) ([]types.Opinion, error) {
 	os := []types.Opinion{}
+	limit := ctx.Value(middleware.PaginationKeys("per_page")).(int)
+	offset := ctx.Value(middleware.PaginationKeys("db_offset")).(int)
 
 	sqlQuery := `
 	SELECT
-        o.opinion_id,
+		o.opinion_id,
+		coalesce(o.parent_id, 0) as parent_id,
         u.username,
         u.full_name,
 		u.picture,
@@ -370,10 +383,11 @@ func (a *App) OpinionsQuery(topicID int64) ([]types.Opinion, error) {
         LEFT JOIN Topic_Category tc on tc.topic_id = t.topic_id
         LEFT JOIN Category c on c.category_id=tc.category_id
     WHERE o.topic_id=$1
-    GROUP BY o.opinion_id, u.user_id, t.topic_id, views
+	GROUP BY o.opinion_id, u.user_id, t.topic_id, views
+	LIMIT $2 OFFSET $3
 	`
 
-	rows, err := a.DB.Query(sqlQuery, topicID)
+	rows, err := a.DB.Query(sqlQuery, topicID, limit, offset)
 	if err != nil {
 		log.Println(err)
 		if err != sql.ErrNoRows {

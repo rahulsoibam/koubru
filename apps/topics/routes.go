@@ -21,18 +21,22 @@ func (a *App) Routes() chi.Router {
 	r.Route("/{topic_id:[0-9]+}", func(r chi.Router) {
 		r.Use(a.Middleware.TopicID)
 		r.Group(func(r chi.Router) {
-			r.Use(a.Middleware.OptionalAuthorization)
-			r.Get("/", a.Get)
-			r.Get("/followers", a.Followers)
-			r.Get("/opinions", a.Opinions)
-		})
-		r.Group(func(r chi.Router) {
 			r.Use(a.Middleware.RequireAuthorization)
 			r.Patch("/", a.Patch)
 			r.Delete("/", a.Delete)
 			r.Put("/follow", a.Follow)
 			r.Delete("/follow", a.Unfollow)
 			r.Post("/report", a.Report)
+		})
+		r.Group(func(r chi.Router) {
+			r.Use(a.Middleware.OptionalAuthorization)
+			r.Get("/", a.Get)
+		})
+		r.Group(func(r chi.Router) {
+			r.Use(a.Middleware.OptionalAuthorization)
+			r.Use(a.Middleware.Pagination)
+			r.Get("/followers", a.Followers)
+			r.Get("/opinions", a.Opinions)
 		})
 	})
 	return r
