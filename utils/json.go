@@ -2,6 +2,7 @@ package utils
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 )
 
@@ -13,6 +14,7 @@ func RespondWithError(w http.ResponseWriter, code int, err error) {
 // RespondWithJSON function to return response in JSON format
 func RespondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	response, _ := json.Marshal(payload)
+	log.Println("PAYLOAD: ", payload)
 
 	// Set headers and write response
 	w.Header().Set("Content-Type", "application/json")
