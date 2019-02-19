@@ -1,7 +1,6 @@
 **/.DS_Store
 .env
 koubru.json
-queries.sql
 koubru-prod-api
 koubru
 koubru-current

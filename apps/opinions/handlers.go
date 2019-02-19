@@ -379,5 +379,6 @@ func (a *App) Vote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Println("Outside vote conditionals")
 	utils.RespondWithMessage(w, http.StatusOK, "Action successful")
 }

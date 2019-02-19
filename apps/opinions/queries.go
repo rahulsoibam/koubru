@@ -201,6 +201,11 @@ func (a *App) AuthGetQuery(userID int64, opinionID int64) (types.Opinion, error)
 		return o, err
 	}
 
+	_, err = a.DB.Exec("INSERT INTO Opinion_View (opinion_id, viewer_id) VALUES ($1, $2)", opinionID, userID)
+	if err != nil {
+		log.Println(err)
+	}
+
 	return o, nil
 }
 
@@ -247,6 +252,10 @@ func (a *App) GetQuery(opinionID int64) (types.Opinion, error) {
 	if err != nil {
 		log.Println(err)
 		return o, err
+	}
+	_, err = a.DB.Exec("INSERT INTO Opinion_View (opinion_id) VALUES ($1)", opinionID)
+	if err != nil {
+		log.Println(err)
 	}
 	return o, nil
 }
