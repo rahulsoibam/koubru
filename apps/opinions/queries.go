@@ -91,7 +91,7 @@ func (a *App) ListQuery(ctx context.Context) ([]types.Opinion, error) {
 	sqlQuery := `
 	SELECT
 		o.opinion_id,
-		coalesce(o.parent_id, 0) as parent_id),
+		coalesce(o.parent_id, 0) as parent_id,
         u.username,
         u.full_name,
         u.picture,
