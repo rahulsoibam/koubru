@@ -105,8 +105,11 @@ func (a *App) GetQuery(usernameID int64) (types.User, error) {
 	return u, nil
 }
 
-func (a *App) AuthFollowersQuery(userID int64, usernameID int64) ([]types.UserForFollowList, error) {
+func (a *App) AuthFollowersQuery(ctx context.Context, userID int64, usernameID int64) ([]types.UserForFollowList, error) {
 	fs := []types.UserForFollowList{}
+	limit := ctx.Value(middleware.PaginationKeys("per_page")).(int)
+	offset := ctx.Value(middleware.PaginationKeys("db_offset")).(int)
+
 	sqlQuery := `
 	SELECT
         u.username,
@@ -118,10 +121,11 @@ func (a *App) AuthFollowersQuery(userID int64, usernameID int64) ([]types.UserFo
     FROM
         Kuser u inner join user_follower uf on u.user_id=uf.follower_id
     WHERE uf.user_id=$2
-    ORDER BY is_self desc, (select followed_on from user_follower where user_id=u.user_id and follower_id=uf.user_id) DESC, uf.followed_on desc
+	ORDER BY is_self desc, (select followed_on from user_follower where user_id=u.user_id and follower_id=uf.user_id) DESC, uf.followed_on desc
+	LIMIT $3 OFFSET $4
 	`
 
-	rows, err := a.DB.Query(sqlQuery, userID, usernameID)
+	rows, err := a.DB.Query(sqlQuery, userID, usernameID, limit, offset)
 	if err != nil {
 		log.Println(err)
 		if err == sql.ErrNoRows {
@@ -148,8 +152,11 @@ func (a *App) AuthFollowersQuery(userID int64, usernameID int64) ([]types.UserFo
 	return fs, nil
 }
 
-func (a *App) FollowersQuery(usernameID int64) ([]types.UserForFollowList, error) {
+func (a *App) FollowersQuery(ctx context.Context, usernameID int64) ([]types.UserForFollowList, error) {
 	fs := []types.UserForFollowList{}
+	limit := ctx.Value(middleware.PaginationKeys("per_page")).(int)
+	offset := ctx.Value(middleware.PaginationKeys("db_offset")).(int)
+
 	sqlQuery := `
 	SELECT
         u.username,
@@ -161,10 +168,11 @@ func (a *App) FollowersQuery(usernameID int64) ([]types.UserForFollowList, error
     FROM
         Kuser u inner join user_follower uf on u.user_id=uf.follower_id
     WHERE uf.user_id=$1
-    ORDER BY is_self desc, (select followed_on from user_follower where user_id=u.user_id and follower_id=uf.user_id) DESC, uf.followed_on desc
+	ORDER BY is_self desc, (select followed_on from user_follower where user_id=u.user_id and follower_id=uf.user_id) DESC, uf.followed_on desc
+	LIMIT $2 OFFSET $3
 	`
 
-	rows, err := a.DB.Query(sqlQuery, usernameID)
+	rows, err := a.DB.Query(sqlQuery, usernameID, limit, offset)
 	if err != nil {
 		log.Println(err)
 		if err == sql.ErrNoRows {
@@ -191,8 +199,11 @@ func (a *App) FollowersQuery(usernameID int64) ([]types.UserForFollowList, error
 	return fs, nil
 }
 
-func (a *App) AuthFollowingQuery(userID int64, usernameID int64) ([]types.UserForFollowList, error) {
+func (a *App) AuthFollowingQuery(ctx context.Context, userID int64, usernameID int64) ([]types.UserForFollowList, error) {
 	fs := []types.UserForFollowList{}
+	limit := ctx.Value(middleware.PaginationKeys("per_page")).(int)
+	offset := ctx.Value(middleware.PaginationKeys("db_offset")).(int)
+
 	sqlQuery := `
 	SELECT
 		u.username,
@@ -204,9 +215,10 @@ func (a *App) AuthFollowingQuery(userID int64, usernameID int64) ([]types.UserFo
 	FROM KUser u INNER JOIN user_follower uf on u.user_id=uf.user_id
 	WHERE uf.follower_id=$2
 	ORDER BY is_self DESC, uf.followed_on DESC
+	LIMIT $3 OFFSET $4
 	`
 
-	rows, err := a.DB.Query(sqlQuery, userID, usernameID)
+	rows, err := a.DB.Query(sqlQuery, userID, usernameID, limit, offset)
 	if err != nil {
 		log.Println(err)
 		if err == sql.ErrNoRows {
@@ -234,8 +246,11 @@ func (a *App) AuthFollowingQuery(userID int64, usernameID int64) ([]types.UserFo
 	return fs, nil
 }
 
-func (a *App) FollowingQuery(usernameID int64) ([]types.UserForFollowList, error) {
+func (a *App) FollowingQuery(ctx context.Context, usernameID int64) ([]types.UserForFollowList, error) {
 	fs := []types.UserForFollowList{}
+	limit := ctx.Value(middleware.PaginationKeys("per_page")).(int)
+	offset := ctx.Value(middleware.PaginationKeys("db_offset")).(int)
+
 	sqlQuery := `
 	SELECT
 		u.username,
@@ -247,9 +262,10 @@ func (a *App) FollowingQuery(usernameID int64) ([]types.UserForFollowList, error
 	FROM KUser u INNER JOIN user_follower uf on u.user_id=uf.user_id
 	WHERE uf.follower_id=$1
 	ORDER BY is_self DESC, uf.followed_on DESC
+	LIMIT $2 OFFSET $3
 	`
 
-	rows, err := a.DB.Query(sqlQuery, usernameID)
+	rows, err := a.DB.Query(sqlQuery, usernameID, limit, offset)
 	if err != nil {
 		log.Println(err)
 		if err == sql.ErrNoRows {
@@ -277,8 +293,11 @@ func (a *App) FollowingQuery(usernameID int64) ([]types.UserForFollowList, error
 	return fs, nil
 }
 
-func (a *App) AuthTopicsQuery(userID int64, usernameID int64) ([]types.TopicForList, error) {
+func (a *App) AuthTopicsQuery(ctx context.Context, userID int64, usernameID int64) ([]types.TopicForList, error) {
 	ts := []types.TopicForList{}
+	limit := ctx.Value(middleware.PaginationKeys("per_page")).(int)
+	offset := ctx.Value(middleware.PaginationKeys("db_offset")).(int)
+
 	sqlQuery := `
 	SELECT
 		t.topic_id,
@@ -297,9 +316,10 @@ func (a *App) AuthTopicsQuery(userID int64, usernameID int64) ([]types.TopicForL
 	WHERE t.creator_id=$2
 	GROUP BY t.topic_id, u.user_id
 	ORDER BY t.created_on desc
+	LIMIT $3 OFFSET $4
 	`
 
-	rows, err := a.DB.Query(sqlQuery, userID, usernameID)
+	rows, err := a.DB.Query(sqlQuery, userID, usernameID, limit, offset)
 	if err != nil {
 		log.Println(err)
 		if err == sql.ErrNoRows {
@@ -326,8 +346,11 @@ func (a *App) AuthTopicsQuery(userID int64, usernameID int64) ([]types.TopicForL
 	return ts, nil
 }
 
-func (a *App) TopicsQuery(usernameID int64) ([]types.TopicForList, error) {
+func (a *App) TopicsQuery(ctx context.Context, usernameID int64) ([]types.TopicForList, error) {
 	ts := []types.TopicForList{}
+	limit := ctx.Value(middleware.PaginationKeys("per_page")).(int)
+	offset := ctx.Value(middleware.PaginationKeys("db_offset")).(int)
+
 	sqlQuery := `
 	SELECT
 		t.topic_id,
@@ -346,9 +369,10 @@ func (a *App) TopicsQuery(usernameID int64) ([]types.TopicForList, error) {
 	WHERE t.creator_id=$1
 	GROUP BY t.topic_id, u.user_id
 	ORDER BY t.created_on desc
+	LIMIT $2 OFFSET $3
 	`
 
-	rows, err := a.DB.Query(sqlQuery, usernameID)
+	rows, err := a.DB.Query(sqlQuery, usernameID, limit, offset)
 	if err != nil {
 		log.Println(err)
 		if err == sql.ErrNoRows {
@@ -374,12 +398,15 @@ func (a *App) TopicsQuery(usernameID int64) ([]types.TopicForList, error) {
 	}
 	return ts, nil
 }
-func (a *App) AuthOpinionsQuery(userID int64, usernameID int64) ([]types.Opinion, error) {
+func (a *App) AuthOpinionsQuery(ctx context.Context, userID int64, usernameID int64) ([]types.Opinion, error) {
 	os := []types.Opinion{}
+	limit := ctx.Value(middleware.PaginationKeys("per_page")).(int)
+	offset := ctx.Value(middleware.PaginationKeys("db_offset")).(int)
 
 	sqlQuery := `
 	SELECT
-        o.opinion_id,
+		o.opinion_id,
+		coalesce(o.parent_id, 0) as parent_id,
         u.username,
         u.full_name,
 		u.picture,
@@ -412,10 +439,11 @@ func (a *App) AuthOpinionsQuery(userID int64, usernameID int64) ([]types.Opinion
         LEFT JOIN Category c on c.category_id=tc.category_id
     WHERE o.creator_id=$2
     GROUP BY o.opinion_id, u.user_id, t.topic_id, views, ov.vote
-    ORDER BY o.created_on DESC;
+	ORDER BY o.created_on DESC
+	LIMIT $3 OFFSET $4
 	`
 
-	rows, err := a.DB.Query(sqlQuery, userID, usernameID)
+	rows, err := a.DB.Query(sqlQuery, userID, usernameID, limit, offset)
 	if err != nil {
 		log.Println(err)
 		if err != sql.ErrNoRows {
@@ -427,7 +455,7 @@ func (a *App) AuthOpinionsQuery(userID int64, usernameID int64) ([]types.Opinion
 	defer rows.Close()
 	for rows.Next() {
 		o := types.Opinion{}
-		err := rows.Scan(&o.ID, &o.CreatedBy.Username, &o.CreatedBy.FullName, &o.CreatedBy.Picture, &o.CreatedBy.IsFollowing, &o.CreatedBy.IsSelf, &o.Topic.ID, &o.Topic.Title, &o.Topic.Details, (*[]byte)(&o.Topic.Categories), &o.Topic.IsFollowing, &o.IsAnonymous, &o.IsFollowing, pq.Array(&o.Thumbnails), &o.Sources.Hls, &o.Sources.Dash, &o.Sources.Aac, &o.Vote, &o.Reaction, &o.CreatedOn, &o.Counts.Views, &o.Counts.Upvotes, &o.Counts.Downvotes, &o.Counts.Followers, &o.Counts.Replies)
+		err := rows.Scan(&o.ID, &o.ParentID, &o.CreatedBy.Username, &o.CreatedBy.FullName, &o.CreatedBy.Picture, &o.CreatedBy.IsFollowing, &o.CreatedBy.IsSelf, &o.Topic.ID, &o.Topic.Title, &o.Topic.Details, (*[]byte)(&o.Topic.Categories), &o.Topic.IsFollowing, &o.IsAnonymous, &o.IsFollowing, pq.Array(&o.Thumbnails), &o.Sources.Hls, &o.Sources.Dash, &o.Sources.Aac, &o.Vote, &o.Reaction, &o.CreatedOn, &o.Counts.Views, &o.Counts.Upvotes, &o.Counts.Downvotes, &o.Counts.Followers, &o.Counts.Replies)
 		if err != nil {
 			log.Println(err)
 			return os, err
@@ -444,12 +472,15 @@ func (a *App) AuthOpinionsQuery(userID int64, usernameID int64) ([]types.Opinion
 	return os, nil
 }
 
-func (a *App) OpinionsQuery(usernameID int64) ([]types.Opinion, error) {
+func (a *App) OpinionsQuery(ctx context.Context, usernameID int64) ([]types.Opinion, error) {
 	os := []types.Opinion{}
+	limit := ctx.Value(middleware.PaginationKeys("per_page")).(int)
+	offset := ctx.Value(middleware.PaginationKeys("db_offset")).(int)
 
 	sqlQuery := `
 	SELECT
-        o.opinion_id,
+		o.opinion_id,
+		coalesce(o.parent_id, 0) as parent_id,
         u.username,
         u.full_name,
 		u.picture,
@@ -482,10 +513,11 @@ func (a *App) OpinionsQuery(usernameID int64) ([]types.Opinion, error) {
         LEFT JOIN Category c on c.category_id=tc.category_id
     WHERE o.creator_id=$1
     GROUP BY o.opinion_id, u.user_id, t.topic_id, views, ov.vote
-    ORDER BY o.created_on DESC
+	ORDER BY o.created_on DESC
+	LIMIT $2 OFFSET $3
 	`
 
-	rows, err := a.DB.Query(sqlQuery, usernameID)
+	rows, err := a.DB.Query(sqlQuery, usernameID, limit, offset)
 	if err != nil {
 		log.Println(err)
 		if err != sql.ErrNoRows {

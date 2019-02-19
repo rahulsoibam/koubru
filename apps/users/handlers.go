@@ -65,9 +65,9 @@ func (a *App) Followers(w http.ResponseWriter, r *http.Request) {
 	followers := []types.UserForFollowList{}
 	var err error
 	if auth {
-		followers, err = a.AuthFollowersQuery(userID, usernameID)
+		followers, err = a.AuthFollowersQuery(ctx, userID, usernameID)
 	} else {
-		followers, err = a.FollowersQuery(usernameID)
+		followers, err = a.FollowersQuery(ctx, usernameID)
 	}
 
 	if err != nil {
@@ -88,9 +88,9 @@ func (a *App) Following(w http.ResponseWriter, r *http.Request) {
 	following := []types.UserForFollowList{}
 	var err error
 	if auth {
-		following, err = a.AuthFollowingQuery(userID, usernameID)
+		following, err = a.AuthFollowingQuery(ctx, userID, usernameID)
 	} else {
-		following, err = a.FollowingQuery(usernameID)
+		following, err = a.FollowingQuery(ctx, usernameID)
 	}
 
 	if err != nil {
@@ -111,9 +111,9 @@ func (a *App) Topics(w http.ResponseWriter, r *http.Request) {
 	topics := []types.TopicForList{}
 	var err error
 	if auth {
-		topics, err = a.AuthTopicsQuery(userID, usernameID)
+		topics, err = a.AuthTopicsQuery(ctx, userID, usernameID)
 	} else {
-		topics, err = a.TopicsQuery(usernameID)
+		topics, err = a.TopicsQuery(ctx, usernameID)
 	}
 	if err != nil {
 		log.Println(err)
@@ -133,9 +133,9 @@ func (a *App) Opinions(w http.ResponseWriter, r *http.Request) {
 	opinions := []types.Opinion{}
 	var err error
 	if auth {
-		opinions, err = a.AuthOpinionsQuery(userID, usernameID)
+		opinions, err = a.AuthOpinionsQuery(ctx, userID, usernameID)
 	} else {
-		opinions, err = a.OpinionsQuery(usernameID)
+		opinions, err = a.OpinionsQuery(ctx, usernameID)
 	}
 	if err != nil {
 		log.Println(err)
