@@ -340,6 +340,7 @@ func (a *App) Vote(w http.ResponseWriter, r *http.Request) {
 				utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 				return
 			}
+			log.Println("Executing upvote when downvoted")
 			utils.RespondWithMessage(w, http.StatusOK, "Upvoted (and deleted downvote)")
 			return
 		} else if voteBool {
@@ -372,6 +373,7 @@ func (a *App) Vote(w http.ResponseWriter, r *http.Request) {
 				utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
 				return
 			}
+			log.Println("Executing downvote when upvoted")
 			utils.RespondWithMessage(w, http.StatusOK, "Downvoted (and deleted upvote)")
 			return
 		} else if !voteBool {
