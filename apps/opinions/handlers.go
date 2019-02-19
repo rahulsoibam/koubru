@@ -385,37 +385,3 @@ func (a *App) Vote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
-
-// else if vote == "downvote" {
-// 	if safe {
-// 		log.Println("Downvoting when user has not voted yet")
-// 		_, err := a.DB.Exec("INSERT INTO Opinion_Vote (voter_id, opinion_id, vote) VALUES ($1, $2, $3)", userID, opinionID, false)
-// 		if err != nil {
-// 			log.Println(err)
-// 			utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
-// 			return
-// 		}
-// 		utils.RespondWithMessage(w, http.StatusOK, "Downvoted")
-// 		return
-// 	} else if voteBool {
-// 		log.Println("Downvoting when user was upvoting")
-// 		_, err := a.DB.Exec("UPDATE Opinion_Vote SET vote=$1 WHERE voter_id=$2 AND opinion_id=$3", false, userID, opinionID)
-// 		if err != nil {
-// 			log.Println(err)
-// 			utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
-// 			return
-// 		}
-// 		log.Println("Executing downvote when upvoted")
-// 		utils.RespondWithMessage(w, http.StatusOK, "Downvoted (and deleted upvote)")
-// 		return
-// 	} else if !voteBool {
-// 		log.Println("Downvoting when user has already downvoted on the post")
-// 		_, err := a.DB.Exec("DELETE FROM Opinion_Vote WHERE voter_id=$1 AND opinion_id=$2", userID, opinionID)
-// 		if err != nil {
-// 			log.Println(err)
-// 			utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
-// 			return
-// 		}
-// 		utils.RespondWithMessage(w, http.StatusOK, "Deleted downvote")
-// 		return
-// 	}
