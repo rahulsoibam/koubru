@@ -50,7 +50,7 @@ func (a *App) Followers(w http.ResponseWriter, r *http.Request) {
 
 	followers := []types.UserForFollowList{}
 	var err error
-	followers, err = a.AuthFollowersQuery(userID)
+	followers, err = a.AuthFollowersQuery(ctx, userID)
 	if err != nil {
 		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
@@ -71,7 +71,7 @@ func (a *App) Following(w http.ResponseWriter, r *http.Request) {
 
 	following := []types.UserForFollowList{}
 	var err error
-	following, err = a.AuthFollowingQuery(userID)
+	following, err = a.AuthFollowingQuery(ctx, userID)
 	if err != nil {
 		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
@@ -92,7 +92,7 @@ func (a *App) Opinions(w http.ResponseWriter, r *http.Request) {
 
 	opinions := []types.Opinion{}
 	var err error
-	opinions, err = a.AuthOpinionsQuery(userID)
+	opinions, err = a.AuthOpinionsQuery(ctx, userID)
 	if err != nil {
 		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
@@ -113,7 +113,7 @@ func (a *App) Topics(w http.ResponseWriter, r *http.Request) {
 
 	topics := []types.TopicForList{}
 	var err error
-	topics, err = a.AuthTopicsQuery(userID)
+	topics, err = a.AuthTopicsQuery(ctx, userID)
 	if err != nil {
 		log.Println(err)
 		utils.RespondWithError(w, http.StatusInternalServerError, errs.InternalServerError)
