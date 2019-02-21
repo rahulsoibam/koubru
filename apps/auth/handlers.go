@@ -300,10 +300,15 @@ func (a *App) Facebook(w http.ResponseWriter, r *http.Request) {
 func (a *App) Google(w http.ResponseWriter, r *http.Request) {
 	googleIDToken := r.FormValue("google_id_token")
 	v := googlejwt.GoogleIDTokenVerifier{}
+	token, err := googlejwt.Decode(googleIDToken)
+	if err != nil {
+		log.Println(err)
+	}
+	log.Println(token)
 	iosaud := "451796869752-sbdnk7c82edf91g3hernllknfmpngifl.apps.googleusercontent.com"
 	andaud := "451796869752-muqbuv2jn8o9hce5c64gl52ibm2gbkmi.apps.googleusercontent.com"
 	andaud2 := "451796869752-6ljrtlnjmr4f1e29un6ssp57gkkc5uu2.apps.googleusercontent.com"
-	err := v.VerifyIDToken(googleIDToken, []string{
+	err = v.VerifyIDToken(googleIDToken, []string{
 		iosaud, andaud, andaud2,
 	})
 	if err != nil {
