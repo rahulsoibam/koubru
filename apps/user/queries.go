@@ -93,7 +93,7 @@ func (a *App) AuthFollowersQuery(ctx context.Context, userID int64) ([]types.Use
         u.full_name,
 		u.picture,
 		uf.followed_on,
-        case when exists(select 1 from user_follower where user_id=u.user_id and follower_id=uf.user_id) then 1 else 0 end as is_following,
+        case when exists(select 1 from user_follower where user_id=u.user_id and follower_id=$1) then 1 else 0 end as is_following,
 		0 as is_self
     FROM
         Kuser u inner join user_follower uf on u.user_id=uf.follower_id
