@@ -31,6 +31,7 @@ func (a *App) Routes() chi.Router {
 			r.Get("/", a.Get)
 		})
 		r.Group(func(r chi.Router) {
+			r.Use(a.Middleware.OptionalAuthorization)
 			r.Use(a.Middleware.Pagination)
 			r.Get("/topics", a.Topics)
 			r.Get("/followers", a.Followers)
