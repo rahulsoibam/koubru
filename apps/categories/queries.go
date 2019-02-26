@@ -249,6 +249,8 @@ func (a *App) AuthFollowersQuery(ctx context.Context, userID int64, categoryID i
 			log.Println(err)
 			return fs, err
 		}
+		log.Println(rows)
+		log.Println(f)
 		fs = append(fs, f)
 	}
 	err = rows.Err()

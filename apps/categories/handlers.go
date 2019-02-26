@@ -161,8 +161,10 @@ func (a *App) Followers(w http.ResponseWriter, r *http.Request) {
 	followers := []types.UserForFollowList{}
 	var err error
 	if auth {
+		log.Println("authenticated category followers")
 		followers, err = a.AuthFollowersQuery(ctx, userID, categoryID)
 	} else {
+		log.Println("unauthenticated category followers")
 		followers, err = a.FollowersQuery(ctx, categoryID)
 	}
 	if err != nil {
